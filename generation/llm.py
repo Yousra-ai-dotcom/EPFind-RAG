@@ -1,5 +1,5 @@
 """
-Personne 3 — Prompt + LLM
+Prompt + LLM
 Rôle : gérer la connexion à Azure OpenAI (chat completions).
 """
 import os
