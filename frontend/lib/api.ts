@@ -28,20 +28,69 @@ export async function askQuestion(
 
 
 
+export async function generateSummary(course: string, summaryType: string) {
+  const response = await fetch(`${API_URL}/summarize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      course,
+      summary_type: summaryType,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur lors de l'appel a l'API /summarize");
+  }
+
+  return response.json();
+}
+
+
+
+
+
+export async function generateQuiz(
+  course: string,
+  level: string,
+  nQuestions: number
+) {
+  const response = await fetch(`${API_URL}/quiz`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      course,
+      level,
+      n_questions: nQuestions,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur lors de l'appel a l'API /quiz");
+  }
+
+  return response.json();
+}
+
+
+
+
+
+
+
+
+
+
+
 export async function getCourses() {
   // TODO: GET `${API_URL}/courses`
   throw new Error("not implemented");
 }
 
-export async function generateQuiz(course: string, level: string, nQuestions: number) {
-  // TODO: POST `${API_URL}/quiz`
-  throw new Error("not implemented");
-}
 
-export async function generateSummary(course: string, summaryType: string) {
-  // TODO: POST `${API_URL}/summarize`
-  throw new Error("not implemented");
-}
+
+
+
+
 
 export async function getHistory() {
   // TODO: GET `${API_URL}/history`
