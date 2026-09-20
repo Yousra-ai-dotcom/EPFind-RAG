@@ -1,3 +1,7 @@
+"""
+Personne 3 — Prompt + LLM
+Rôle : gérer la connexion à Azure OpenAI (chat completions).
+"""
 import os
 from openai import AzureOpenAI
 from dotenv import load_dotenv
