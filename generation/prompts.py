@@ -1,5 +1,5 @@
 """
-Personne 3 — Prompt + LLM
+Prompt + LLM
 Rôle : centraliser tous les prompts envoyés à Azure OpenAI.
 """
 
