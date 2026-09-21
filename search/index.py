@@ -1,43 +1,112 @@
-"""
-Personne 2 — Embeddings + Search
-Rôle : créer et alimenter l'index Azure AI Search.
-
-Schéma d'index cible (un document = un chunk) :
-{
-    "id": "chunk-uuid",
-    "course_id": "ml-01",
-    "course_name": "Machine Learning",
-    "module": "Artificial Intelligence",
-    "chapter": "Classification",
-    "page": 25,
-    "content": "La classification supervisée...",
-    "content_vector": [...],
-    "document_name": "cours-01.pdf"
-}
-"""
-
 import os
+
 from dotenv import load_dotenv
+from azure.core.credentials import AzureKeyCredential
+from azure.search.documents.indexes import SearchIndexClient
+from azure.search.documents.indexes.models import (
+    SearchIndex,
+    SearchField,
+    SearchFieldDataType,
+    SimpleField,
+    SearchableField,
+    VectorSearch,
+    HnswAlgorithmConfiguration,
+    VectorSearchProfile,
+)
 
 load_dotenv()
 
 AZURE_SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
-AZURE_SEARCH_KEY = os.getenv("AZURE_SEARCH_KEY")
-AZURE_SEARCH_INDEX_NAME = os.getenv("AZURE_SEARCH_INDEX_NAME", "epf-courses-index")
+AZURE_SEARCH_API_KEY = os.getenv("AZURE_SEARCH_API_KEY")
+INDEX_NAME = os.getenv("AZURE_SEARCH_INDEX_NAME", "epfind-courses")
+
+if not AZURE_SEARCH_ENDPOINT:
+    raise ValueError("AZURE_SEARCH_ENDPOINT est manquant dans .env")
+
+if not AZURE_SEARCH_API_KEY:
+    raise ValueError("AZURE_SEARCH_API_KEY est manquant dans .env")
 
 
-def create_index() -> None:
-    """
-    TODO (Personne 2) :
-    - Créer l'index Azure AI Search avec les champs ci-dessus
-    - Configurer le champ content_vector comme champ vectoriel
-    """
-    raise NotImplementedError
+# Client Azure AI Search
+index_client = SearchIndexClient(
+    endpoint=AZURE_SEARCH_ENDPOINT,
+    credential=AzureKeyCredential(AZURE_SEARCH_API_KEY),
+)
 
 
-def upload_documents(chunks_with_embeddings: list[dict]) -> None:
-    """
-    TODO (Personne 2) :
-    - Envoyer les chunks (avec leur vecteur) dans l'index Azure AI Search
-    """
-    raise NotImplementedError
+def create_index():
+    fields = [
+        SimpleField(
+            name="id",
+            type=SearchFieldDataType.String,
+            key=True,
+            filterable=True,
+        ),
+
+        SearchableField(
+            name="content",
+            type=SearchFieldDataType.String,
+        ),
+
+        SimpleField(
+            name="course",
+            type=SearchFieldDataType.String,
+            filterable=True,
+            facetable=True,
+        ),
+
+        SimpleField(
+            name="chapter",
+            type=SearchFieldDataType.String,
+            filterable=True,
+        ),
+
+        SimpleField(
+            name="page",
+            type=SearchFieldDataType.Int32,
+            filterable=True,
+        ),
+
+        SimpleField(
+            name="document",
+            type=SearchFieldDataType.String,
+            filterable=True,
+        ),
+
+        SearchField(
+            name="content_vector",
+            type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+            searchable=True,
+            vector_search_dimensions=1536,
+            vector_search_profile_name="vector-profile",
+        ),
+    ]
+
+    vector_search = VectorSearch(
+        algorithms=[
+            HnswAlgorithmConfiguration(
+                name="hnsw-config"
+            )
+        ],
+        profiles=[
+            VectorSearchProfile(
+                name="vector-profile",
+                algorithm_configuration_name="hnsw-config",
+            )
+        ],
+    )
+
+    index = SearchIndex(
+        name=INDEX_NAME,
+        fields=fields,
+        vector_search=vector_search,
+    )
+
+    result = index_client.create_or_update_index(index)
+
+    print("Index Azure AI Search créé avec succès.")
+    print("Nom :", result.name)
+
+
+if __name__ == "__main__":
+    create_index()
