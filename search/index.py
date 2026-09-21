@@ -56,9 +56,10 @@ def create_index():
         ),
 
         SimpleField(
-            name="chapter",
+            name="module",
             type=SearchFieldDataType.String,
             filterable=True,
+            facetable=True,
         ),
 
         SimpleField(
@@ -101,6 +102,7 @@ def create_index():
         fields=fields,
         vector_search=vector_search,
     )
+
 
     result = index_client.create_or_update_index(index)
 
