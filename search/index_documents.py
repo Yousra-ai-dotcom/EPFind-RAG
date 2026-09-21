@@ -41,7 +41,6 @@ def index_documents(chunks: list[dict]):
 
     for chunk in chunks:
 
-        # Les chunks d'Adam utilisent la clé "text"
         content = chunk.get("text", "")
 
         if not content.strip():
