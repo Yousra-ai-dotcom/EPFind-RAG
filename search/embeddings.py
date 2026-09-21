@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from openai import AzureOpenAI
 
 
-# Charger les variables du fichier .env
 load_dotenv()
 
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -23,7 +22,6 @@ if not EMBEDDING_DEPLOYMENT:
     raise ValueError("AZURE_OPENAI_EMBEDDING_DEPLOYMENT est manquant dans .env")
 
 
-# Client Azure OpenAI
 client = AzureOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
@@ -32,9 +30,6 @@ client = AzureOpenAI(
 
 
 def generate_embedding(text: str) -> list[float]:
-    """
-    Transforme un texte en vecteur avec Azure OpenAI.
-    """
 
     if not text or not text.strip():
         raise ValueError("Le texte à convertir en embedding est vide.")
