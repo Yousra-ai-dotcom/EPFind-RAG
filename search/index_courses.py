@@ -24,7 +24,6 @@ def index_all_courses():
 
     for pdf_path in pdf_files:
 
-        # Le premier dossier sous data/courses correspond au module.
         relative_path = pdf_path.relative_to(COURSES_DIRECTORY)
 
         if len(relative_path.parts) > 1:
@@ -37,16 +36,14 @@ def index_all_courses():
         print(f"PDF    : {pdf_path.name}")
 
         try:
-            # Pipeline d'Adam :
-            # PDF -> extraction -> nettoyage -> chunks + metadata
+            # Pipeline d'Adam : PDF -> extraction -> nettoyage -> chunks + metadata
             chunks = process_pdf(str(pdf_path))
 
             if not chunks:
                 print("Aucun texte exploitable trouvé.")
                 continue
 
-            # On remplace les métadonnées temporaires d'Adam
-            # par celles provenant réellement de l'organisation des fichiers.
+           
             for chunk in chunks:
                 chunk["module"] = module
                 chunk["course"] = pdf_path.stem
