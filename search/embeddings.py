@@ -1,69 +1,57 @@
-"""
-Personne 2 — Embeddings + Search
-Rôle : transformer les chunks de texte en vecteurs (embeddings) via Azure OpenAI.
-"""
-
 import os
-from dotenv import load_dotenv
-from openai import OpenAI
 
+from dotenv import load_dotenv
+from openai import AzureOpenAI
+
+
+# Charger les variables du fichier .env
 load_dotenv()
 
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
-AZURE_OPENAI_EMBEDDING_DEPLOYMENT = os.getenv(
-    "AZURE_OPENAI_EMBEDDING_DEPLOYMENT"
-)
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+EMBEDDING_DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")
 
+
+# Vérifier que la configuration existe
 if not AZURE_OPENAI_ENDPOINT:
-    raise ValueError("AZURE_OPENAI_ENDPOINT manquant dans .env")
+    raise ValueError("AZURE_OPENAI_ENDPOINT est manquant dans .env")
 
-if not AZURE_OPENAI_KEY:
-    raise ValueError("AZURE_OPENAI_KEY manquant dans .env")
+if not AZURE_OPENAI_API_KEY:
+    raise ValueError("AZURE_OPENAI_API_KEY est manquant dans .env")
 
-if not AZURE_OPENAI_EMBEDDING_DEPLOYMENT:
-    raise ValueError(
-        "AZURE_OPENAI_EMBEDDING_DEPLOYMENT manquant dans .env"
-    )
+if not EMBEDDING_DEPLOYMENT:
+    raise ValueError("AZURE_OPENAI_EMBEDDING_DEPLOYMENT est manquant dans .env")
 
 
-client = OpenAI(
-    api_key=AZURE_OPENAI_KEY,
-    base_url=f"{AZURE_OPENAI_ENDPOINT.rstrip('/')}/openai/v1/",
+# Client Azure OpenAI
+client = AzureOpenAI(
+    api_key=AZURE_OPENAI_API_KEY,
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_version="2024-02-01",
 )
 
 
-def get_embedding(text: str) -> list[float]:
+def generate_embedding(text: str) -> list[float]:
     """
-    Transforme un texte en vecteur d'embedding.
+    Transforme un texte en vecteur avec Azure OpenAI.
     """
+
+    if not text or not text.strip():
+        raise ValueError("Le texte à convertir en embedding est vide.")
 
     response = client.embeddings.create(
-        model=AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
+        model=EMBEDDING_DEPLOYMENT,
         input=text,
     )
 
     return response.data[0].embedding
 
 
-def get_embeddings_batch(texts: list[str]) -> list[list[float]]:
-    """
-    Transforme plusieurs textes en embeddings en une seule requête.
-    """
-
-    response = client.embeddings.create(
-        model=AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
-        input=texts,
-    )
-
-    return [item.embedding for item in response.data]
-
-
 if __name__ == "__main__":
-    vector = get_embedding(
-        "L'intelligence artificielle permet aux machines d'apprendre."
-    )
+    test_text = "Le RAG permet à un modèle de rechercher des informations dans des documents."
 
-    print("Embedding généré avec succès !")
-    print("Dimension :", len(vector))
-    print("Premières valeurs :", vector[:5])
+    embedding = generate_embedding(test_text)
+
+    print("Embedding généré avec succès.")
+    print("Nombre de dimensions :", len(embedding))
+    print("Premières valeurs :", embedding[:5])
