@@ -54,7 +54,7 @@ def index_all_courses():
 
             print(f"{len(chunks)} chunk(s) généré(s).")
 
-            # Partie Yousra :
+           
             # chunks -> embeddings -> Azure AI Search
             index_documents(chunks)
 
