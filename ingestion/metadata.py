@@ -20,25 +20,18 @@ def attach_metadata(
     page: int,
     document: str,
 ) -> dict:
+    """
+    Attach basic metadata to a text chunk.
+
+    Module and course metadata are added later
+    by the course management / indexing pipeline.
+    """
+
     return {
         "text": chunk_text,
         "page": page,
         "document": document,
     }
-    """
-    Associe un chunk de texte à ses métadonnées.
-
-    Args:
-        chunk_text: Texte du chunk.
-        course: Nom du cours.
-        module: Nom du module.
-        chapter: Nom du chapitre.
-        page: Numéro de la page.
-        document: Nom du fichier PDF.
-
-    Returns:
-        Un dictionnaire contenant le texte et ses métadonnées.
-    """
 
     
 

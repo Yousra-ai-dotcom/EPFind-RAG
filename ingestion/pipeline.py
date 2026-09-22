@@ -29,13 +29,3 @@ def process_pdf(pdf_path):
             all_chunks.append(chunk_with_metadata)
 
     return all_chunks
-
-
-if __name__ == "__main__":
-    chunks = process_pdf("data/courses/cours-01.pdf")
-
-    print("Nombre de chunks :", len(chunks))
-
-    if chunks:
-        print("\nPremier chunk :")
-        print(chunks[0])
