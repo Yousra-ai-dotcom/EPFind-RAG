@@ -17,12 +17,14 @@ Format attendu pour un chunk final (envoyé ensuite à Personne 2 pour l'embeddi
 
 def attach_metadata(
     chunk_text: str,
-    course: str,
-    module: str,
-    chapter: str,
     page: int,
     document: str,
 ) -> dict:
+    return {
+        "text": chunk_text,
+        "page": page,
+        "document": document,
+    }
     """
     Associe un chunk de texte à ses métadonnées.
 
@@ -38,14 +40,7 @@ def attach_metadata(
         Un dictionnaire contenant le texte et ses métadonnées.
     """
 
-    return {
-        "course": course,
-        "module": module,
-        "chapter": chapter,
-        "page": page,
-        "document": document,
-        "text": chunk_text,
-    }
+    
 
 
 if __name__ == "__main__":
