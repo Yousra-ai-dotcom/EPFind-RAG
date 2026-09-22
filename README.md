@@ -4,16 +4,21 @@ EPFind est un assistant intelligent destiné aux étudiants de l’EPF.
 
 L’application permet de consulter et d’exploiter les cours de l’EPF grâce à une architecture RAG (Retrieval-Augmented Generation).
 
-Fonctionnalités principales :
+Les cours sont préchargés dans la plateforme par un administrateur et peuvent ensuite être utilisés par les étudiants pour poser des questions, réviser leurs cours et générer des QCM.
+
+## Fonctionnalités principales
 
 - Authentification avec le compte Microsoft EPF
+- Accès aux cours disponibles dans EPFind
 - Chat intelligent basé sur les cours
 - Recherche d’informations dans les supports de cours
+- Sélection du module ou du cours
 - Révision et génération de résumés
 - Génération de QCM
-- Sélection du module ou du cours
 - Explication des réponses aux QCM
+- Affichage des sources utilisées dans les réponses
 - Historique des conversations
+- Gestion et ajout des cours par un administrateur
 
 ---
 
@@ -37,26 +42,66 @@ Fonctionnalités principales :
 
 ## Architecture RAG
 
-Le fonctionnement principal de EPFind est :
+Le fonctionnement principal d’EPFind est :
 
-PDF des cours
-→ extraction du texte
-→ nettoyage
-→ chunking
-→ métadonnées
-→ embeddings
-→ Azure AI Search
-→ retrieval
-→ contexte
-→ LLM
-→ réponse
+```text
+PDF du cours
+      ↓
+Azure Blob Storage
+      ↓
+Extraction du texte
+      ↓
+Nettoyage
+      ↓
+Chunking
+      ↓
+Métadonnées
+      ↓
+Embeddings
+      ↓
+Azure AI Search
+      ↓
+Retrieval
+      ↓
+Contexte pertinent
+      ↓
+LLM
+      ↓
+Réponse + sources
+```
 
-Les mêmes documents pourront être utilisés pour :
+Les mêmes documents peuvent être utilisés pour :
 
 - Chat
 - Révision
 - Résumés
 - QCM
+
+### Gestion des cours
+
+Les cours EPF sont ajoutés à la plateforme par un administrateur.
+
+Lorsqu’un nouveau cours est ajouté :
+
+```text
+Administrateur
+      ↓
+Upload du PDF
+      ↓
+Azure Blob Storage
+      ↓
+Pipeline d’ingestion
+      ↓
+Extraction + nettoyage + chunking
+      ↓
+Embeddings
+      ↓
+Azure AI Search
+      ↓
+Cours disponible dans EPFind
+```
+
+Pour le prototype du hackathon, un ensemble limité de cours EPF est utilisé afin de démontrer le fonctionnement complet du système.
 
 ---
 
@@ -70,13 +115,12 @@ Dossier principal :
 
 Responsabilités :
 
-- récupération des PDF
-- extraction du texte avec PyMuPDF
+- extraction du texte des PDF avec PyMuPDF
 - nettoyage du texte
 - chunking
-- création des métadonnées
-- préparation des documents pour l'indexation
-- intégration avec Azure Blob Storage
+- préparation des métadonnées
+- préparation des chunks pour l’indexation
+- pipeline de traitement des documents
 
 ---
 
@@ -91,18 +135,18 @@ Dossiers principaux :
 Responsabilités :
 
 - génération des embeddings
-- configuration d'Azure AI Search
-- création de l'index vectoriel
+- configuration d’Azure AI Search
+- création de l’index vectoriel
 - indexation des chunks
-- recherche sémantique
+- recherche vectorielle et sémantique
 - retrieval des passages pertinents
-- filtrage par cours/module
+- filtrage par module et cours
 - intégration du pipeline RAG
-- API FastAPI
+- développement de l’API FastAPI
 - connexion entre ingestion, search et generation
-- intégration de l'authentification Microsoft Entra ID
+- intégration de l’authentification Microsoft Entra ID
 
-Yousra est également responsable du repository GitHub et de l'intégration du projet.
+Yousra est également responsable du repository GitHub et de l’intégration globale du projet.
 
 ---
 
@@ -117,14 +161,53 @@ Dossiers principaux :
 Responsabilités :
 
 - intégration du LLM
-- prompts RAG
+- conception des prompts RAG
 - génération des réponses
 - génération des résumés
 - génération des QCM
 - explication des réponses
-- interface Next.js
+- développement de l’interface Next.js
 - pages Chat, Révision, QCM et Historique
-- intégration du frontend avec l'API FastAPI
+- affichage des réponses et de leurs sources
+- intégration du frontend avec l’API FastAPI
+
+---
+
+### Diarra— Course Management & Azure Blob Storage
+
+Dossier principal :
+
+`storage/`
+
+
+Responsabilités :
+
+- configuration d’Azure Blob Storage
+- stockage des PDF des cours
+- upload des nouveaux cours
+- validation des documents PDF
+- récupération de la liste des documents
+- téléchargement des documents depuis Azure Blob Storage
+- gestion des documents stockés
+- organisation des documents par module et cours
+- connexion entre Azure Blob Storage et le pipeline d’ingestion
+- déclenchement du traitement et de l’indexation d’un nouveau cours
+
+Pipeline associé :
+
+```text
+Upload PDF
+    ↓
+Azure Blob Storage
+    ↓
+Ingestion
+    ↓
+Chunks
+    ↓
+Azure AI Search
+    ↓
+Cours disponible dans EPFind
+```
 
 ---
 
@@ -133,15 +216,77 @@ Responsabilités :
 ```text
 epf-find/
 ├── backend/
+│   ├── auth/
+│   ├── database/
+│   ├── routes/
+│   │   ├── ask.py
+│   │   ├── courses.py
+│   │   ├── documents.py
+│   │   ├── history.py
+│   │   ├── quiz.py
+│   │   └── revision.py
+│   ├── services/
+│   ├── main.py
+│   └── requirements.txt
+│
 ├── data/
 │   └── courses/
+│
 ├── docs/
+│
 ├── frontend/
+│
 ├── generation/
+│
 ├── ingestion/
+│
 ├── search/
+│
+├── storage/
+│   ├── __init__.py
+│   ├── blob_service.py
+│   ├── course_manager.py
+│   └── requirements.txt
+│
 ├── tests/
-├── .env.example
+│   └── test_storage.py
+│
 ├── .gitignore
 ├── docker-compose.yml
 └── README.md
+```
+
+---
+
+## Pipeline global
+
+```text
+                   ADMIN
+                     │
+                     ▼
+              Azure Blob Storage
+                     │
+                     ▼
+                  INGESTION
+                     │
+              PDF → texte → chunks
+                     │
+                     ▼
+               SEARCH / RAG
+                     │
+        Embeddings → Azure AI Search
+                     │
+                 Retrieval
+                     │
+                     ▼
+                GENERATION
+                     │
+                     ▼
+               FastAPI Backend
+                     │
+                     ▼
+                  Frontend
+                     │
+                     ▼
+                  Étudiant
+```
