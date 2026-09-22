@@ -1,6 +1,6 @@
 """
-Personne 3 — Prompt + LLM
-Rôle : assembler question + contexte récupéré (Personne 2) en une réponse finale
+Prompt + LLM
+Rôle : assembler question + contexte récupéré en une réponse finale
 avec ses sources.
 """
 
@@ -9,11 +9,21 @@ from generation.llm import call_llm
 
 
 def build_answer(question: str, chunks: list[dict]) -> dict:
-    """
-    TODO (Personne 3) :
-    - Construire le contexte à partir de `chunks` (concaténation des textes)
-    - Remplir QA_PROMPT avec context + question
-    - Appeler call_llm()
-    - Retourner {"answer": "...", "sources": [{"course":..., "chapter":..., "page":...}, ...]}
-    """
-    raise NotImplementedError
+    if not chunks:
+        context = "Aucun contenu trouvé dans les cours."
+    else:
+        context = "\n\n".join(chunk["text"] for chunk in chunks)
+
+    prompt = QA_PROMPT.format(context=context, question=question)
+    answer_text = call_llm(prompt)
+
+    sources = [
+        {
+            "course": chunk.get("course"),
+            "chapter": chunk.get("chapter"),
+            "page": chunk.get("page"),
+        }
+        for chunk in chunks
+    ]
+
+    return {"answer": answer_text, "sources": sources}
