@@ -25,6 +25,37 @@ search_client = SearchClient(
     credential=AzureKeyCredential(AZURE_SEARCH_API_KEY),
 )
 
+def course_is_indexed(
+    module: str,
+    course: str,
+) -> bool:
+    """
+    Check whether a course already has at least one chunk
+    in Azure AI Search.
+    """
+
+    if not module or not module.strip():
+        raise ValueError("Le module ne peut pas être vide.")
+
+    if not course or not course.strip():
+        raise ValueError("Le cours ne peut pas être vide.")
+
+    safe_module = module.replace("'", "''")
+    safe_course = course.replace("'", "''")
+
+    filter_expression = (
+        f"module eq '{safe_module}' "
+        f"and course eq '{safe_course}'"
+    )
+
+    results = search_client.search(
+        search_text="*",
+        filter=filter_expression,
+        select=["id"],
+        top=1,
+    )
+
+    return next(iter(results), None) is not None
 
 def retrieve(
     question: str,
@@ -81,6 +112,47 @@ def retrieve(
             "page": result.get("page"),
             "document": result.get("document"),
             "score": result.get("@search.score"),
+        })
+
+    return chunks
+
+def get_course_content(
+    course: str,
+    max_chunks: int = 50,
+) -> list[dict]:
+    """
+    Récupère des chunks appartenant à un cours précis.
+
+    Utilisé notamment pour générer les QCM et les fiches de révision.
+    """
+
+    if not course or not course.strip():
+        raise ValueError("Le cours ne peut pas être vide.")
+
+    safe_course = course.replace("'", "''")
+
+    results = search_client.search(
+        search_text="*",
+        filter=f"course eq '{safe_course}'",
+        select=[
+            "content",
+            "module",
+            "course",
+            "page",
+            "document",
+        ],
+        top=max_chunks,
+    )
+
+    chunks = []
+
+    for result in results:
+        chunks.append({
+            "content": result.get("content", ""),
+            "module": result.get("module", ""),
+            "course": result.get("course", ""),
+            "page": result.get("page"),
+            "document": result.get("document", ""),
         })
 
     return chunks
