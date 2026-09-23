@@ -1,6 +1,6 @@
 /**
- * Barre latérale de navigation - visible sur toutes les pages "app"
- * (chat, cours, révision, QCM, historique) + bloc Profil / Déconnexion.
+ * Barre latérale de navigation - visible sur toutes les pages "app".
+ * Applique aussi le thème et la langue choisis (useApplyPreferences).
  */
 
 "use client";
@@ -9,18 +9,22 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Logo from "./Logo";
 import { logout } from "@/lib/auth";
+import { useApplyPreferences } from "@/lib/preferences";
+import { useT, TKey } from "@/lib/i18n";
 
-const LINKS = [
-  { href: "/chat", label: "Chat", icon: "💬" },
-  { href: "/courses", label: "Mes cours", icon: "📚" },
-  { href: "/revision", label: "Révision", icon: "📖" },
-  { href: "/quiz", label: "QCM", icon: "📝" },
-  { href: "/history", label: "Historique", icon: "🕘" },
+const LINKS: { href: string; key: TKey; icon: string }[] = [
+  { href: "/chat", key: "nav_chat", icon: "💬" },
+  { href: "/courses", key: "nav_courses", icon: "📚" },
+  { href: "/revision", key: "nav_revision", icon: "📖" },
+  { href: "/quiz", key: "nav_quiz", icon: "📝" },
+  { href: "/history", key: "nav_history", icon: "🕘" },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useT();
+  useApplyPreferences();
 
   async function handleLogout() {
     try {
@@ -50,7 +54,7 @@ export default function Sidebar() {
                 }`}
               >
                 <span>{link.icon}</span>
-                {link.label}
+                {t(link.key)}
               </Link>
             );
           })}
@@ -67,13 +71,13 @@ export default function Sidebar() {
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-epf-pink text-sm font-bold text-white">
             E
           </span>
-          <span className="text-sm font-semibold text-epf-dark">Mon profil</span>
+          <span className="text-sm font-semibold text-epf-dark">{t("nav_profile")}</span>
         </Link>
         <button
           onClick={handleLogout}
           className="mt-2 w-full rounded-lg px-2 py-1.5 text-left text-xs font-medium text-epf-gray transition hover:bg-white/60 hover:text-epf-pink-dark"
         >
-          ⎋ Déconnexion
+          ⎋ {t("nav_logout")}
         </button>
       </div>
     </aside>

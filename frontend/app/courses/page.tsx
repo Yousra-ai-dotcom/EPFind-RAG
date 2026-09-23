@@ -10,12 +10,14 @@ import Sidebar from "@/components/Sidebar";
 import Loading from "@/components/Loading";
 import ErrorMessage from "@/components/ErrorMessage";
 import { getCourses } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const t = useT();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -41,31 +43,28 @@ export default function CoursesPage() {
 
       <main className="flex-1 overflow-y-auto p-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-xl font-bold text-epf-dark">📚 Mes cours</h1>
+          <h1 className="text-xl font-bold text-epf-dark">📚 {t("courses_title")}</h1>
           <input
             className="w-full max-w-xs rounded-xl border border-epf-pink-light bg-white px-4 py-2.5 text-sm focus:border-epf-pink focus:outline-none"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un cours..."
-            aria-label="Rechercher un cours"
+            placeholder={t("courses_search")}
+            aria-label={t("courses_search")}
           />
         </div>
 
-        {loading && <Loading label="Chargement des cours..." />}
+        {loading && <Loading label={t("courses_loading")} />}
 
-        {error && (
-          <ErrorMessage
-            message="Impossible de charger les cours. Le serveur ne répond pas."
-            onRetry={load}
-          />
-        )}
+        {error && <ErrorMessage message={t("courses_error")} onRetry={load} />}
 
         {!loading && !error && courses.length === 0 && (
-          <p className="text-epf-gray">Aucun cours disponible pour le moment.</p>
+          <p className="text-epf-gray">{t("courses_empty")}</p>
         )}
 
         {!loading && !error && courses.length > 0 && filtered.length === 0 && (
-          <p className="text-epf-gray">Aucun cours ne correspond à « {search} ».</p>
+          <p className="text-epf-gray">
+            {t("courses_no_match").replace("{search}", search)}
+          </p>
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -78,7 +77,7 @@ export default function CoursesPage() {
                 📘
               </div>
               <h2 className="text-sm font-semibold text-epf-dark">{course}</h2>
-              <p className="mt-1 text-xs text-epf-gray">Cours indexé dans EPFind</p>
+              <p className="mt-1 text-xs text-epf-gray">{t("courses_card_sub")}</p>
             </div>
           ))}
         </div>
