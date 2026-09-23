@@ -14,11 +14,8 @@ load_dotenv()
 
 def call_llm(prompt: str, temperature: float = 0.3) -> str:
     """
-    Envoie un prompt à Azure OpenAI et retourne la réponse du modèle.
-
-    Le paramètre temperature est conservé dans la signature
-    pour rester compatible avec le reste du projet, mais il
-    n'est pas envoyé à GPT-5-mini.
+    Envoie un prompt à Azure OpenAI (déploiement GPT-5-mini) et retourne
+    le texte de la réponse du modèle.
     """
 
     endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -27,10 +24,8 @@ def call_llm(prompt: str, temperature: float = 0.3) -> str:
 
     if not endpoint:
         raise ValueError("AZURE_OPENAI_ENDPOINT est manquant.")
-
     if not api_key:
         raise ValueError("AZURE_OPENAI_KEY est manquant.")
-
     if not deployment:
         raise ValueError("AZURE_OPENAI_CHAT_DEPLOYMENT est manquant.")
 
@@ -44,7 +39,7 @@ def call_llm(prompt: str, temperature: float = 0.3) -> str:
         messages=[
             {"role": "user", "content": prompt}
         ],
-        max_completion_tokens=800,
+        max_completion_tokens=1200,
     )
 
     return response.choices[0].message.content
