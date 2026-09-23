@@ -19,9 +19,10 @@ def build_answer(question: str, chunks: list[dict]) -> dict:
 
     sources = [
         {
-            "course": chunk.get("course"),
-            "chapter": chunk.get("chapter"),
-            "page": chunk.get("page"),
+           "module": chunk.get("module"),
+           "course": chunk.get("course"),
+           "document": chunk.get("document"),
+           "page": chunk.get("page"),
         }
         for chunk in chunks
     ]
