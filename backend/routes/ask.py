@@ -1,13 +1,16 @@
 """
 Route POST /ask
-Responsable : Personne 2 (route) + Personne 3 (logique RAG/génération)
-
 Reçoit une question, appelle le RAG (search + generation), enregistre
 l'échange en base et retourne la réponse + les sources.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from backend.database.database import get_db
+from backend.auth.entra import get_current_user_optional
+from backend.services.rag_service import ask_rag, get_or_create_user
 
 router = APIRouter()
 
@@ -25,12 +28,17 @@ class AskResponse(BaseModel):
 
 
 @router.post("/ask", response_model=AskResponse)
-def ask(request: AskRequest):
-    """
-    TODO (Personne 2 + Personne 3) :
-    - Appeler search.retrieval.retrieve(question, course)
-    - Appeler generation.answer.build_answer(question, chunks)
-    - Enregistrer question/réponse dans PostgreSQL (database/models.py)
-    - Retourner AskResponse
-    """
-    raise NotImplementedError
+def ask(
+    request: AskRequest,
+    db: Session = Depends(get_db),
+    identity: dict = Depends(get_current_user_optional),
+):
+    user = get_or_create_user(db, identity)
+    result = ask_rag(
+        db=db,
+        user=user,
+        question=request.question,
+        course=request.course,
+        conversation_id=request.conversation_id,
+    )
+    return result

@@ -4,5 +4,7 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 pydantic
-msal
-python-jose
+pyjwt[crypto]
+openai
+azure-search-documents==11.5.1
+azure-core

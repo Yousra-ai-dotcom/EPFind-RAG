@@ -1,22 +1,28 @@
 """
 Backend — point d'entrée FastAPI
-Responsable principal : Personne 2
 
 Assemble les routes /ask, /courses, /quiz, /summarize, /history
 et déclare le endpoint /health.
 """
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routes import ask, courses, quiz, revision, history
+from backend.routes import ask, courses, quiz, revision, history
+from backend.database.database import engine
+from backend.database.models import Base
+
+# Crée les tables PostgreSQL si elles n'existent pas encore.
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EPF Find API")
 
-# TODO : restreindre allow_origins à l'URL du frontend en production
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[FRONTEND_URL, "http://localhost:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

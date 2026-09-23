@@ -1,10 +1,12 @@
 """
 Route POST /summarize
-Responsable : Personne 3 (génération du résumé) + Personne 2 (route)
+Génère une fiche de révision à partir du contenu d'un cours.
 """
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+
+from backend.services.rag_service import summarize_course
 
 router = APIRouter()
 
@@ -18,10 +20,4 @@ class SummarizeRequest(BaseModel):
 
 @router.post("/summarize")
 def summarize(request: SummarizeRequest):
-    """
-    TODO (Personne 3 + Personne 2) :
-    - Récupérer le contenu du cours via search.retrieval
-    - Générer la fiche de révision via generation (prompt SUMMARY_PROMPT)
-    - Retourner le résultat
-    """
-    raise NotImplementedError
+    return summarize_course(request.course, request.summary_type)
