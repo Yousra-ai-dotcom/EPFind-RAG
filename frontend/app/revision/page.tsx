@@ -1,15 +1,12 @@
 /**
- * Page Révision ("/revision") 
- *
- * - Sélecteur de cours
- * - Choix du type de révision (résumé rapide / détaillé / points clés / fiche / explication)
- * - Bouton "Générer ma révision" -> POST /summarize
- * - Affichage du résultat formaté
+ * Page Révision ("/revision")
  */
 
 "use client";
 
 import { useState } from "react";
+import Sidebar from "@/components/Sidebar";
+import CourseSelector from "@/components/CourseSelector";
 import { generateSummary } from "@/lib/api";
 
 const SUMMARY_TYPES = [
@@ -28,10 +25,11 @@ export default function RevisionPage() {
 
   async function handleGenerate() {
     setLoading(true);
+    setResult("");
     try {
       const data = await generateSummary(course, summaryType);
       setResult(data.summary);
-    } catch (error) {
+    } catch {
       setResult("Une erreur est survenue, réessayez.");
     } finally {
       setLoading(false);
@@ -39,44 +37,58 @@ export default function RevisionPage() {
   }
 
   return (
-    <main className="p-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Choisissez votre cours</h1>
+    <div className="flex h-screen bg-[#f7f6fa]">
+      <Sidebar />
 
-      <input
-        className="border p-2 w-full mb-4"
-        value={course}
-        onChange={(e) => setCourse(e.target.value)}
-        placeholder="Nom du cours (ex: Machine Learning)"
-      />
+      <main className="flex-1 overflow-y-auto p-6">
+        <h1 className="mb-6 text-xl font-bold text-epf-dark">📚 Réviser un cours</h1>
 
-      <h2 className="text-lg font-semibold mb-2">Comment voulez-vous réviser ?</h2>
-
-      <div className="flex flex-col gap-2 mb-4">
-        {SUMMARY_TYPES.map((type) => (
-          <label key={type.value} className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="summaryType"
-              value={type.value}
-              checked={summaryType === type.value}
-              onChange={(e) => setSummaryType(e.target.value)}
-            />
-            {type.label}
+        <div className="max-w-2xl rounded-xl2 bg-white p-6 shadow-sm">
+          <label className="mb-2 block text-sm font-semibold text-epf-dark">
+            Choisissez votre cours
           </label>
-        ))}
-      </div>
+          <CourseSelector value={course} onChange={setCourse} />
 
-      <button
-        className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-        onClick={handleGenerate}
-        disabled={loading || !course}
-      >
-        {loading ? "Génération..." : "Générer ma révision"}
-      </button>
+          <label className="mb-2 mt-6 block text-sm font-semibold text-epf-dark">
+            Comment voulez-vous réviser ?
+          </label>
+          <div className="flex flex-col gap-2">
+            {SUMMARY_TYPES.map((type) => (
+              <label
+                key={type.value}
+                className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2.5 text-sm ${
+                  summaryType === type.value
+                    ? "border-epf-pink bg-epf-pink-light"
+                    : "border-epf-pink-light"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="summaryType"
+                  value={type.value}
+                  checked={summaryType === type.value}
+                  onChange={(e) => setSummaryType(e.target.value)}
+                />
+                {type.label}
+              </label>
+            ))}
+          </div>
 
-      {result && (
-        <div className="mt-6 whitespace-pre-line border-t pt-4">{result}</div>
-      )}
-    </main>
+          <button
+            className="mt-6 w-full rounded-xl bg-epf-pink py-3 text-sm font-semibold text-white transition hover:bg-epf-pink-dark disabled:opacity-60"
+            onClick={handleGenerate}
+            disabled={loading || !course}
+          >
+            {loading ? "Génération..." : "Générer ma révision"}
+          </button>
+        </div>
+
+        {result && (
+          <div className="mt-6 max-w-2xl whitespace-pre-line rounded-xl2 bg-white p-6 text-sm leading-relaxed text-epf-dark shadow-sm">
+            {result}
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
