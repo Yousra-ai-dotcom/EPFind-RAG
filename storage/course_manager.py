@@ -4,17 +4,21 @@ Course management pipeline for EPFind.
 Pipeline:
 
 Azure Blob Storage
-        ↓
+↓
 Download PDF
-        ↓
+↓
 EPFind ingestion
-        ↓
+↓
 Chunks + metadata
-        ↓
+↓
 Azure AI Search indexing
 """
 
-from typing import Optional
+from ingestion.pipeline import process_pdf
+from search.index_documents import index_documents
+from storage.blob_service import download_course
+from storage.blob_service import download_course, list_courses
+from search.retrieval import course_is_indexed
 
 
 def prepare_course_chunks(
@@ -26,7 +30,14 @@ def prepare_course_chunks(
     Process a PDF using the existing ingestion pipeline
     and add the required EPFind metadata to every chunk.
     """
-    pass
+
+    chunks = process_pdf(pdf_path)
+
+    for chunk in chunks:
+        chunk["module"] = module
+        chunk["course"] = course
+
+    return chunks
 
 
 def index_course(
@@ -35,9 +46,38 @@ def index_course(
     course: str,
 ) -> dict:
     """
-    Process and index a course into Azure AI Search.
+    Process a local course PDF and index its chunks
+    into Azure AI Search.
     """
-    pass
+
+    chunks = prepare_course_chunks(
+        pdf_path=pdf_path,
+        module=module,
+        course=course,
+    )
+
+    if not chunks:
+        return {
+            "module": module,
+            "course": course,
+            "chunks": 0,
+            "indexed": False,
+        }
+
+    results = index_documents(chunks)
+
+    successful = sum(
+        1 for result in results
+        if result.succeeded
+    )
+
+    return {
+        "module": module,
+        "course": course,
+        "chunks": len(chunks),
+        "indexed_chunks": successful,
+        "indexed": successful == len(chunks),
+    }
 
 
 def process_course(
@@ -54,7 +94,140 @@ def process_course(
         -> metadata
         -> Azure AI Search
     """
-    pass
+
+    pdf_path = download_course(blob_name)
+
+    result = index_course(
+        pdf_path=pdf_path,
+        module=module,
+        course=course,
+    )
+
+    result["blob_name"] = blob_name
+
+    return result
+
+
+def process_all_courses() -> list[dict]:
+    """
+    Process and index only courses that are not already
+    present in Azure AI Search.
+    """
+
+    courses = list_courses()
+
+    if not courses:
+        print("Aucun cours trouvé dans Azure Blob Storage.")
+        return []
+
+    results = []
+
+    print(f"{len(courses)} cours trouvé(s) dans Azure Blob Storage.\n")
+
+    for course_info in courses:
+
+        blob_name = course_info["blob_name"]
+        module = course_info["module"]
+        course = course_info["course"]
+
+        print("=" * 60)
+        print(f"Module : {module}")
+        print(f"Cours  : {course}")
+
+        try:
+            # Ne pas recalculer les embeddings d'un cours déjà indexé
+            if course_is_indexed(module, course):
+                print("Déjà indexé -> ignoré.")
+
+                results.append({
+                    "blob_name": blob_name,
+                    "module": module,
+                    "course": course,
+                    "status": "skipped",
+                })
+
+                continue
+
+            print("Nouveau cours -> indexation...")
+
+            result = process_course(
+                blob_name=blob_name,
+                module=module,
+                course=course,
+            )
+
+            result["status"] = "indexed"
+            results.append(result)
+
+        except Exception as error:
+            print(f"Erreur : {error}")
+
+            results.append({
+                "blob_name": blob_name,
+                "module": module,
+                "course": course,
+                "status": "error",
+                "error": str(error),
+            })
+
+    return results
+    """
+    Process and index every PDF stored in Azure Blob Storage.
+
+    Azure Blob Storage
+        -> list courses
+        -> download each PDF
+        -> ingestion
+        -> metadata
+        -> embeddings
+        -> Azure AI Search
+    """
+
+    courses = list_courses()
+
+    if not courses:
+        print("Aucun cours trouvé dans Azure Blob Storage.")
+        return []
+
+    results = []
+
+    print(f"{len(courses)} cours trouvé(s) dans Azure Blob Storage.\n")
+
+    for course_info in courses:
+
+        blob_name = course_info["blob_name"]
+        module = course_info["module"]
+        course = course_info["course"]
+
+        print("=" * 60)
+        print(f"Module : {module}")
+        print(f"Cours  : {course}")
+        print(f"Blob   : {blob_name}")
+
+        try:
+            result = process_course(
+                blob_name=blob_name,
+                module=module,
+                course=course,
+            )
+
+            results.append(result)
+
+        except Exception as error:
+            print(f"Erreur pendant l'indexation de {blob_name} :")
+            print(error)
+
+            results.append(
+                {
+                    "blob_name": blob_name,
+                    "module": module,
+                    "course": course,
+                    "indexed": False,
+                    "error": str(error),
+                }
+            )
+
+    return results
 
 
 def upload_and_process_course(
@@ -70,4 +243,4 @@ def upload_and_process_course(
         -> ingestion
         -> Azure AI Search
     """
-    pass
+    raise NotImplementedError
