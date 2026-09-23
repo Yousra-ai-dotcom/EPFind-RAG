@@ -19,13 +19,13 @@ def call_llm(prompt: str, temperature: float = 0.3) -> str:
     """
 
     endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    api_key = os.getenv("AZURE_OPENAI_KEY")
+    api_key = os.getenv("AZURE_OPENAI_API_KEY")
     deployment = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
 
     if not endpoint:
         raise ValueError("AZURE_OPENAI_ENDPOINT est manquant.")
     if not api_key:
-        raise ValueError("AZURE_OPENAI_KEY est manquant.")
+        raise ValueError("AZURE_OPENAI_API_KEY est manquant.")
     if not deployment:
         raise ValueError("AZURE_OPENAI_CHAT_DEPLOYMENT est manquant.")
 
