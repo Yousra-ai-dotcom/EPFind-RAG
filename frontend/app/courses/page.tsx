@@ -1,6 +1,7 @@
 /**
  * Page "Mes cours" ("/courses")
  * Liste les cours via GET /courses (getCourses), avec recherche et grille de cartes.
+ * En mode démo (NEXT_PUBLIC_DEMO_MODE=true), utilise des cours fictifs.
  */
 
 "use client";
@@ -10,6 +11,7 @@ import Sidebar from "@/components/Sidebar";
 import Loading from "@/components/Loading";
 import ErrorMessage from "@/components/ErrorMessage";
 import { getCourses } from "@/lib/api";
+import { DEMO_MODE, DEMO_COURSES } from "@/lib/demo";
 import { useT } from "@/lib/i18n";
 
 export default function CoursesPage() {
@@ -20,8 +22,16 @@ export default function CoursesPage() {
   const t = useT();
 
   const load = useCallback(() => {
-    setLoading(true);
     setError(false);
+
+    // Mode démo : pas d'appel au backend
+    if (DEMO_MODE) {
+      setCourses(DEMO_COURSES);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     getCourses()
       .then((data) => setCourses(data.courses))
       .catch(() => setError(true))
