@@ -14,7 +14,6 @@ export default function SourceCard({ sources }: { sources: Source[] }) {
         {sources.map((source, index) => (
           <li key={index} className="text-xs text-epf-gray">
             {source.course}
-            {source.chapter ? ` — ${source.chapter}` : ""}
             {source.page ? ` — page ${source.page}` : ""}
           </li>
         ))}

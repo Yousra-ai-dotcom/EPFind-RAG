@@ -27,7 +27,9 @@ export default function ChatPage() {
 
     try {
       const result = await askQuestion(question, course || undefined, conversationId);
-      setConversationId(result.conversation_id);
+      if (result.conversation_id !== null) {
+         setConversationId(result.conversation_id);
+      }
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: result.answer, sources: result.sources },
