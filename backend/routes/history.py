@@ -1,65 +1,68 @@
 """
-Routes GET /history et GET /history/{conversation_id}
+Routes de gestion de l'historique des conversations EPFind.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.database.database import get_db
-from backend.database.models import Conversation, Message
-from backend.auth.entra import get_current_user_optional
-from backend.services.rag_service import get_or_create_user
+from backend.services.history_service import (
+    get_conversation_by_id,
+    get_conversations,
+)
 
 router = APIRouter()
 
 
 @router.get("/history")
-def get_history(
-    db: Session = Depends(get_db),
-    identity: dict = Depends(get_current_user_optional),
-):
-    user = get_or_create_user(db, identity)
-    conversations = (
-        db.query(Conversation)
-        .filter(Conversation.user_id == user.id)
-        .order_by(Conversation.created_at.desc())
-        .all()
-    )
-    return {
-        "conversations": [
-            {
-                "id": c.id,
-                "title": c.title,
-                "created_at": c.created_at.isoformat(),
-            }
-            for c in conversations
-        ]
-    }
+def get_history(db: Session = Depends(get_db)):
+    """
+    Retourne la liste des conversations.
+    """
+
+    conversations = get_conversations(db)
+
+    return [
+        {
+            "id": conversation.id,
+            "title": conversation.title,
+            "created_at": conversation.created_at,
+        }
+        for conversation in conversations
+    ]
 
 
 @router.get("/history/{conversation_id}")
-def get_conversation(conversation_id: int, db: Session = Depends(get_db)):
-    conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation introuvable")
+def get_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Retourne une conversation avec tous ses messages.
+    """
 
-    messages = (
-        db.query(Message)
-        .filter(Message.conversation_id == conversation_id)
-        .order_by(Message.created_at.asc())
-        .all()
+    conversation = get_conversation_by_id(
+        db=db,
+        conversation_id=conversation_id,
     )
+
+    if conversation is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Conversation introuvable.",
+        )
 
     return {
         "id": conversation.id,
         "title": conversation.title,
+        "created_at": conversation.created_at,
         "messages": [
             {
-                "role": m.role,
-                "content": m.content,
-                "sources": m.sources,
-                "created_at": m.created_at.isoformat(),
+                "id": message.id,
+                "role": message.role,
+                "content": message.content,
+                "created_at": message.created_at,
             }
-            for m in messages
+            for message in conversation.messages
         ],
     }

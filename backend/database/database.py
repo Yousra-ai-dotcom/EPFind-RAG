@@ -1,41 +1,40 @@
 """
-Connexion à PostgreSQL
-Responsable : Personne 2 (complété ici pour débloquer la démo)
-
-Ce fichier crée la connexion SQLAlchemy vers la base PostgreSQL et
-expose une fonction get_db() utilisable comme dépendance FastAPI.
+Connexion à PostgreSQL pour EPFind.
 """
 
 import os
+
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise ValueError(
-        "DATABASE_URL est manquant. Ajoutez-le dans votre fichier .env "
-        "(ex: postgresql://user:password@host:5432/epffind)"
-    )
+    raise ValueError("DATABASE_URL est manquant dans le fichier .env.")
 
-# L'engine gère le pool de connexions vers PostgreSQL.
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+)
 
-# SessionLocal crée une nouvelle "session" (conversation avec la BDD)
-# à chaque requête HTTP.
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
+
+Base = declarative_base()
 
 
 def get_db():
     """
-    Dépendance FastAPI : ouvre une session, la donne à la route,
-    puis la ferme automatiquement (même en cas d'erreur).
-    Utilisation dans une route : db: Session = Depends(get_db)
+    Fournit une session SQLAlchemy aux routes FastAPI.
     """
     db = SessionLocal()
+
     try:
         yield db
     finally:

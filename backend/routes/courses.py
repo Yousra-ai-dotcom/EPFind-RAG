@@ -1,27 +1,39 @@
 """
 Route GET /courses
-Retourne la liste des cours disponibles (pour remplir le sélecteur de cours
-côté frontend).
+
+Retourne la liste des cours disponibles dans Azure Blob Storage
+pour alimenter les sélecteurs du frontend EPFind.
 """
 
-import os
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+
+from storage.blob_service import list_courses
+
 
 router = APIRouter()
-
-# Pour le MVP du hackathon, la liste des cours est fixée manuellement.
-# Idéalement (amélioration possible), on interroge Azure AI Search pour
-# récupérer les valeurs distinctes du champ "course_name".
-COURSES = [
-    c.strip()
-    for c in os.getenv(
-        "EPF_COURSES",
-        "Machine Learning,Chatbot,Big Data,Blockchain,Java,DevOps"
-    ).split(",")
-    if c.strip()
-]
 
 
 @router.get("/courses")
 def get_courses():
-    return {"courses": COURSES}
+    """
+    Return the list of available EPF courses.
+    """
+
+    try:
+        course_documents = list_courses()
+
+        courses = sorted({
+            course["course"]
+            for course in course_documents
+            if course.get("course")
+        })
+
+        return {
+            "courses": courses
+        }
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur pendant la récupération des cours : {str(error)}",
+        )

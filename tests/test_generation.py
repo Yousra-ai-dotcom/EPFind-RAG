@@ -14,7 +14,6 @@ def test_build_answer_with_chunks():
         {
             "text": "La regression lineaire est une methode statistique...",
             "course": "Machine Learning",
-            "chapter": "Regression",
             "page": 12,
         },
     ]
@@ -24,7 +23,12 @@ def test_build_answer_with_chunks():
 
     assert result["answer"] == "Voici la reponse generee"
     assert result["sources"] == [
-        {"course": "Machine Learning", "chapter": "Regression", "page": 12}
+        {
+            "module": None,
+            "course": "Machine Learning",
+            "document": None,
+            "page": 12,
+     }
     ]
 
 
