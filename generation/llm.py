@@ -12,7 +12,11 @@ from openai import OpenAI
 load_dotenv()
 
 
-def call_llm(prompt: str, temperature: float = 0.3) -> str:
+def call_llm(
+    prompt: str,
+    temperature: float = 0.3,
+    max_completion_tokens: int = 1200,
+) -> str:
     """
     Envoie un prompt à Azure OpenAI (déploiement GPT-5-mini) et retourne
     le texte de la réponse du modèle.
@@ -39,7 +43,7 @@ def call_llm(prompt: str, temperature: float = 0.3) -> str:
         messages=[
             {"role": "user", "content": prompt}
         ],
-        max_completion_tokens=1200,
+        max_completion_tokens=max_completion_tokens,
     )
 
     return response.choices[0].message.content
