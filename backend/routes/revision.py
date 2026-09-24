@@ -1,10 +1,14 @@
 """
 Route POST /summarize
-Responsable : Personne 3 (génération du résumé) + Personne 2 (route)
+
+Reçoit un cours et un type de révision,
+puis génère le contenu correspondant.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from backend.services.revision_service import generate_course_summary
 
 router = APIRouter()
 
@@ -12,16 +16,39 @@ router = APIRouter()
 class SummarizeRequest(BaseModel):
     course: str
     summary_type: str = "resume_rapide"
-    # valeurs possibles : resume_rapide, resume_detaille, points_cles,
-    # fiche_de_revision, explication_pedagogique
 
 
 @router.post("/summarize")
 def summarize(request: SummarizeRequest):
     """
-    TODO (Personne 3 + Personne 2) :
-    - Récupérer le contenu du cours via search.retrieval
-    - Générer la fiche de révision via generation (prompt SUMMARY_PROMPT)
-    - Retourner le résultat
+    Génère un contenu de révision à partir d'un cours indexé.
+
+    Types disponibles :
+    - resume_rapide
+    - resume_detaille
+    - points_cles
+    - fiche_de_revision
+    - explication_pedagogique
     """
-    raise NotImplementedError
+
+    try:
+        summary = generate_course_summary(
+            course=request.course,
+            summary_type=request.summary_type,
+        )
+
+        return {
+            "summary": summary,
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur pendant la génération de la révision : {str(error)}",
+        )
