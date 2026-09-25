@@ -6,7 +6,8 @@
 
 import { getAccessToken } from "./auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getAccessToken();
@@ -24,8 +25,9 @@ async function handle(response: Response) {
 }
 
 export type Source = {
+  module: string;
   course: string;
-  chapter: string;
+  document: string;
   page: number;
 };
 
@@ -33,7 +35,11 @@ export async function askQuestion(
   question: string,
   course?: string,
   conversationId?: number
-): Promise<{ answer: string; sources: Source[]; conversation_id: number }> {
+): Promise<{
+  answer: string;
+  sources: Source[];
+  conversation_id: number | null;
+}> {
   const response = await fetch(`${API_URL}/ask`, {
     method: "POST",
     headers: await authHeaders(),

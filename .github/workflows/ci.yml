@@ -17,6 +17,8 @@ jobs:
       - name: Install backend deps
         run: pip install -r backend/requirements.txt -r ingestion/requirements.txt pytest
       - name: Run tests
+        env:
+          PYTHONPATH: .
         run: pytest tests/
 
   frontend-build:
