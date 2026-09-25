@@ -35,9 +35,9 @@ export default function ModuleCourseSelect({
   const coursesForModule = module ? modules[module] || [] : [];
 
   return (
-    <div className="flex gap-2">
+    <div className="flex w-fit max-w-full gap-2">
       <select
-        className="rounded-xl border border-epf-pink-light bg-white px-3 py-2 text-sm text-epf-dark focus:border-epf-pink focus:outline-none"
+        className="w-48 min-w-0 rounded-xl border border-epf-pink-light bg-white px-3 py-2 text-sm text-epf-dark focus:border-epf-pink focus:outline-none"
         value={module}
         disabled={loading}
         onChange={(e) => {
@@ -54,7 +54,7 @@ export default function ModuleCourseSelect({
       </select>
 
       <select
-        className="rounded-xl border border-epf-pink-light bg-white px-3 py-2 text-sm text-epf-dark focus:border-epf-pink focus:outline-none"
+        className="w-48 min-w-0 rounded-xl border border-epf-pink-light bg-white px-3 py-2 text-sm text-epf-dark focus:border-epf-pink focus:outline-none"
         value={course}
         disabled={loading || !module}
         onChange={(e) => onCourseChange(e.target.value)}
