@@ -37,8 +37,9 @@ function getMsalInstance(): PublicClientApplication {
   return msalInstance;
 }
 
-const loginScopes = ["User.Read"];
-
+const loginScopes = [
+  `api://${CLIENT_ID}/access_as_user`,
+];
 /** Ouvre la popup de connexion Microsoft et retourne le compte connecté. */
 export async function loginWithMicrosoft(): Promise<AccountInfo | null> {
   const instance = getMsalInstance();

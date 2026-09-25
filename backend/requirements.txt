@@ -7,3 +7,4 @@ pydantic
 msal
 python-jose
 python-multipart
+requests
