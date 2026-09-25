@@ -10,7 +10,8 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes import ask, courses, history, quiz, revision
+from backend.routes import ask, courses, quiz, revision, feedback, speech
+
 load_dotenv()
 
 app = FastAPI(
@@ -37,7 +38,8 @@ app.include_router(ask.router)
 app.include_router(courses.router)
 app.include_router(quiz.router)
 app.include_router(revision.router)
-app.include_router(history.router)
+app.include_router(feedback.router)
+app.include_router(speech.router)
 
 
 @app.get("/")

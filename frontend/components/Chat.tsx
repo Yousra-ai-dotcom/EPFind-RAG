@@ -1,17 +1,74 @@
 /**
- * Zone de conversation : liste des messages (question / réponse) + sources.
+ * Zone de conversation : liste des messages (question / réponse), sources,
+ * like/dislike + régénération, et bouton "écouter" (texte -> audio).
  */
 
+"use client";
+
+import { useState } from "react";
 import SourceCard from "./SourceCard";
-import { Source } from "@/lib/api";
+import FeedbackButtons from "./FeedbackButtons";
+import { Source, synthesizeSpeech } from "@/lib/api";
 
 export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   sources?: Source[];
+  liked?: boolean | null;
 };
 
-export default function Chat({ messages }: { messages: ChatMessage[] }) {
+type Props = {
+  messages: ChatMessage[];
+  onFeedback?: (messageIndex: number, liked: boolean | null) => void;
+  onRegenerate?: (messageIndex: number) => void;
+};
+
+export default function Chat({ messages, onFeedback, onRegenerate }: Props) {
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+
+  async function handleListen(index: number, text: string) {
+    if (currentAudio && playingIndex === index) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+      setPlayingIndex(null);
+      return;
+    }
+
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+
+    setPlayingIndex(index);
+
+    try {
+      const audioBlob = await synthesizeSpeech(text);
+      const url = URL.createObjectURL(audioBlob);
+      const audio = new Audio(url);
+
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setCurrentAudio(null);
+        setPlayingIndex(null);
+      };
+
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        setCurrentAudio(null);
+        setPlayingIndex(null);
+      };
+
+      setCurrentAudio(audio);
+      await audio.play();
+    } catch {
+      setCurrentAudio(null);
+      setPlayingIndex(null);
+      alert("Impossible de lire la réponse à voix haute.");
+    }
+  }
+
   if (messages.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center text-center text-epf-gray">
@@ -36,8 +93,31 @@ export default function Chat({ messages }: { messages: ChatMessage[] }) {
             }`}
           >
             <p className="whitespace-pre-line">{message.content}</p>
+
             {message.role === "assistant" && message.sources && (
               <SourceCard sources={message.sources} />
+            )}
+
+            {message.role === "assistant" && (
+              <div className="mt-2 flex items-center gap-3">
+                <button
+                  onClick={() => handleListen(index, message.content)}
+                  className="text-xs text-epf-gray hover:text-epf-pink"
+                  title={playingIndex === index ? "Arrêter la lecture" : "Écouter la réponse"}
+                >
+                  {playingIndex === index ? "⏹️ Arrêter" : "🔊 Écouter"}
+                </button>
+
+                {onFeedback && onRegenerate && (
+                  <FeedbackButtons
+                    question={messages[index - 1]?.content || ""}
+                    answer={message.content}
+                    liked={message.liked}
+                    onFeedback={(liked) => onFeedback(index, liked)}
+                    onRegenerate={() => onRegenerate(index)}
+                  />
+                )}
+              </div>
             )}
           </div>
         </div>
