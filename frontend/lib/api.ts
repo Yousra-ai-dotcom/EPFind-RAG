@@ -101,3 +101,9 @@ export async function getConversation(conversationId: number) {
   });
   return handle(response);
 }
+export async function getMe() {
+  const response = await fetch(`${API_URL}/me`, {
+    headers: await authHeaders(),
+  });
+  return handle(response);
+}

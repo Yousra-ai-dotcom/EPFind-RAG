@@ -4,11 +4,11 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import CourseSelector from "@/components/CourseSelector";
 import Chat, { ChatMessage } from "@/components/Chat";
-import { askQuestion } from "@/lib/api";
+import { askQuestion, getMe } from "@/lib/api";
 
 export default function ChatPage() {
   const [course, setCourse] = useState("");
@@ -16,6 +16,25 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<number | undefined>();
   const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    email: string;
+    microsoft_id: string;
+  } | null>(null);
+
+  useEffect(() => {
+  async function loadUser() {
+    try {
+      const result = await getMe();
+      console.log("Résultat /me :", result);
+      setCurrentUser(result.user);
+    } catch (error) {
+      console.error("Erreur /me :", error);
+    }
+  }
+
+  loadUser();
+}, []);
 
   async function handleAsk() {
     if (!question.trim()) return;
@@ -51,6 +70,11 @@ export default function ChatPage() {
       <main className="flex flex-1 flex-col p-6">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-epf-dark">💬 Poser une question</h1>
+          {currentUser && (
+            <div className="text-sm">
+              Connectée : <strong>{currentUser.name}</strong> — {currentUser.email}
+            </div>
+          )}
           <div className="w-64">
             <CourseSelector value={course} onChange={setCourse} allowAll />
           </div>
