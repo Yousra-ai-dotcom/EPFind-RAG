@@ -8,8 +8,11 @@ l'identité de l'utilisateur connecté.
 import os
 
 from dotenv import load_dotenv
+from fastapi import Header
 from jose import JWTError, jwt
 import requests
+
+from fastapi import HTTPException
 
 load_dotenv()
 
@@ -21,7 +24,7 @@ if not ENTRA_TENANT_ID or not ENTRA_CLIENT_ID:
         "ENTRA_TENANT_ID et ENTRA_CLIENT_ID doivent être définis."
     )
 
-MICROSOFT_LOGIN = "https:" + "//" + "login.microsoftonline.com"
+MICROSOFT_LOGIN = "https://" + "login.microsoftonline.com"
 
 ISSUER = f"{MICROSOFT_LOGIN}/{ENTRA_TENANT_ID}/v2.0"
 
@@ -109,3 +112,38 @@ def verify_token(token: str) -> dict:
         raise ValueError(
             f"Token Microsoft invalide : {exc}"
         ) from exc
+
+
+def get_current_user(
+    authorization: str | None = Header(default=None),
+) -> dict:
+    """
+    Dépendance FastAPI pour les routes protégées.
+
+    Lit le header Authorization: Bearer <token>.
+    """
+
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token manquant")
+
+    token = authorization.split(" ", 1)[1]
+    return verify_token(token)
+
+
+def get_current_user_optional(
+    authorization: str | None = Header(default=None),
+) -> dict:
+    """
+    Variante souple utilisée pendant le développement.
+
+    Si aucun token n'est présent, retourne un utilisateur invité.
+    """
+
+    if not authorization:
+        return {
+            "name": "Invité",
+            "email": "guest@epf.fr",
+            "microsoft_id": "guest",
+        }
+
+    return get_current_user(authorization)

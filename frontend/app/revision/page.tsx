@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import CourseSelector from "@/components/CourseSelector";
+import ModuleCourseSelect from "@/components/ModuleCourseSelect";
 import { generateSummary } from "@/lib/api";
 
 const SUMMARY_TYPES = [
@@ -18,6 +18,7 @@ const SUMMARY_TYPES = [
 ];
 
 export default function RevisionPage() {
+  const [module, setModule] = useState("");
   const [course, setCourse] = useState("");
   const [summaryType, setSummaryType] = useState("resume_rapide");
   const [result, setResult] = useState("");
@@ -27,7 +28,7 @@ export default function RevisionPage() {
     setLoading(true);
     setResult("");
     try {
-      const data = await generateSummary(course, summaryType);
+      const data = await generateSummary(course, summaryType, module || undefined);
       setResult(data.summary);
     } catch {
       setResult("Une erreur est survenue, réessayez.");
@@ -41,13 +42,18 @@ export default function RevisionPage() {
       <Sidebar />
 
       <main className="flex-1 overflow-y-auto p-6">
-        <h1 className="mb-6 text-xl font-bold text-epf-dark">📚 Réviser un cours</h1>
+        <h1 className="mb-6 text-xl font-bold text-epf-dark">📖 Réviser un cours</h1>
 
         <div className="max-w-2xl rounded-xl2 bg-white p-6 shadow-sm">
           <label className="mb-2 block text-sm font-semibold text-epf-dark">
-            Choisissez votre cours
+            Module et cours
           </label>
-          <CourseSelector value={course} onChange={setCourse} />
+          <ModuleCourseSelect
+            module={module}
+            course={course}
+            onModuleChange={setModule}
+            onCourseChange={setCourse}
+          />
 
           <label className="mb-2 mt-6 block text-sm font-semibold text-epf-dark">
             Comment voulez-vous réviser ?
@@ -79,7 +85,7 @@ export default function RevisionPage() {
             onClick={handleGenerate}
             disabled={loading || !course}
           >
-            {loading ? "Génération..." : "Générer ma révision"}
+            {loading ? "Génération..." : "Générer ma fiche de révision"}
           </button>
         </div>
 

@@ -10,7 +10,18 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes import ask, auth, courses, history, quiz, revision
+
+from backend.routes import (
+    ask,
+    auth,
+    courses,
+    feedback,
+    history,
+    quiz,
+    revision,
+    speech,
+)
+
 load_dotenv()
 
 app = FastAPI(
@@ -33,12 +44,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(ask.router)
+app.include_router(auth.router)
 app.include_router(courses.router)
+app.include_router(feedback.router)
+app.include_router(history.router)
 app.include_router(quiz.router)
 app.include_router(revision.router)
-app.include_router(history.router)
-app.include_router(auth.router)
+app.include_router(speech.router)
 
 
 @app.get("/")
