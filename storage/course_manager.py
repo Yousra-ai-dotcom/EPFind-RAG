@@ -16,9 +16,12 @@ Azure AI Search indexing
 
 from ingestion.pipeline import process_pdf
 from search.index_documents import index_documents
-from storage.blob_service import download_course
-from storage.blob_service import download_course, list_courses
 from search.retrieval import course_is_indexed
+from storage.blob_service import (
+    download_course,
+    list_courses,
+    upload_course,
+)
 
 
 def prepare_course_chunks(
@@ -171,63 +174,6 @@ def process_all_courses() -> list[dict]:
             })
 
     return results
-    """
-    Process and index every PDF stored in Azure Blob Storage.
-
-    Azure Blob Storage
-        -> list courses
-        -> download each PDF
-        -> ingestion
-        -> metadata
-        -> embeddings
-        -> Azure AI Search
-    """
-
-    courses = list_courses()
-
-    if not courses:
-        print("Aucun cours trouvé dans Azure Blob Storage.")
-        return []
-
-    results = []
-
-    print(f"{len(courses)} cours trouvé(s) dans Azure Blob Storage.\n")
-
-    for course_info in courses:
-
-        blob_name = course_info["blob_name"]
-        module = course_info["module"]
-        course = course_info["course"]
-
-        print("=" * 60)
-        print(f"Module : {module}")
-        print(f"Cours  : {course}")
-        print(f"Blob   : {blob_name}")
-
-        try:
-            result = process_course(
-                blob_name=blob_name,
-                module=module,
-                course=course,
-            )
-
-            results.append(result)
-
-        except Exception as error:
-            print(f"Erreur pendant l'indexation de {blob_name} :")
-            print(error)
-
-            results.append(
-                {
-                    "blob_name": blob_name,
-                    "module": module,
-                    "course": course,
-                    "indexed": False,
-                    "error": str(error),
-                }
-            )
-
-    return results
 
 
 def upload_and_process_course(
@@ -243,4 +189,22 @@ def upload_and_process_course(
         -> ingestion
         -> Azure AI Search
     """
-    raise NotImplementedError
+
+    upload_result = upload_course(
+        file_path=file_path,
+        module=module,
+        course=course,
+    )
+
+    blob_name = upload_result["blob_name"]
+
+    processing_result = process_course(
+        blob_name=blob_name,
+        module=upload_result["module"],
+        course=upload_result["course"],
+    )
+
+    return {
+        **upload_result,
+        **processing_result,
+    }
