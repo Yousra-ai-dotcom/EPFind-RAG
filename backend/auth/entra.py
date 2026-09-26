@@ -1,66 +1,128 @@
 """
-Authentification Microsoft Entra ID
-Responsable : partagé (complété ici pour débloquer la démo)
+Authentification Microsoft Entra ID pour EPF Find.
 
-Le frontend se connecte avec MSAL (Microsoft) et récupère un "access token".
-Ce fichier vérifie que ce token est valide et en extrait l'identité
-de l'étudiant (nom, email EPF, id Microsoft).
-
-Important : on ne stocke JAMAIS de mot de passe. Microsoft gère tout.
+Valide l'access token envoyé par le frontend et récupère
+l'identité de l'utilisateur connecté.
 """
 
 import os
-import jwt
-from jwt import PyJWKClient
-from fastapi import Header, HTTPException
+
 from dotenv import load_dotenv
+from fastapi import Header
+from jose import JWTError, jwt
+import requests
+
+from fastapi import HTTPException
 
 load_dotenv()
 
 ENTRA_TENANT_ID = os.getenv("ENTRA_TENANT_ID")
 ENTRA_CLIENT_ID = os.getenv("ENTRA_CLIENT_ID")
 
-# Adresse où Microsoft publie ses clés publiques (pour vérifier la signature
-# du token, sans jamais partager de mot de passe).
-JWKS_URL = f"https://login.microsoftonline.com/{ENTRA_TENANT_ID}/discovery/v2.0/keys"
+if not ENTRA_TENANT_ID or not ENTRA_CLIENT_ID:
+    raise RuntimeError(
+        "ENTRA_TENANT_ID et ENTRA_CLIENT_ID doivent être définis."
+    )
+
+MICROSOFT_LOGIN = "https://" + "login.microsoftonline.com"
+
+ISSUER = f"{MICROSOFT_LOGIN}/{ENTRA_TENANT_ID}/v2.0"
+
+JWKS_URL = (
+    f"{MICROSOFT_LOGIN}/{ENTRA_TENANT_ID}/"
+    "discovery/v2.0/keys"
+)
 
 
 def verify_token(token: str) -> dict:
     """
-    Valide un token JWT émis par Microsoft Entra ID et retourne l'identité
-    de l'utilisateur.
+    Vérifie un access token Microsoft Entra ID.
+
+    Vérifications :
+    - signature Microsoft
+    - audience EPF Find
+    - issuer / tenant
+    - expiration
+    - scope access_as_user
+
+    Retourne l'identité de l'utilisateur.
     """
-    if not ENTRA_TENANT_ID or not ENTRA_CLIENT_ID:
-        raise ValueError("ENTRA_TENANT_ID / ENTRA_CLIENT_ID manquants dans .env")
 
     try:
-        jwks_client = PyJWKClient(JWKS_URL)
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        # Récupération des clés publiques Microsoft
+        jwks = requests.get(JWKS_URL, timeout=5)
+        jwks.raise_for_status()
+        keys = jwks.json()
 
+        # Lecture du header JWT pour trouver la clé utilisée
+        header = jwt.get_unverified_header(token)
+        kid = header.get("kid")
+
+        rsa_key = next(
+            (key for key in keys["keys"] if key.get("kid") == kid),
+            None,
+        )
+
+        if rsa_key is None:
+            raise ValueError("Clé de signature Microsoft introuvable.")
+
+        # Vérification cryptographique du token
         payload = jwt.decode(
             token,
-            signing_key.key,
+            rsa_key,
             algorithms=["RS256"],
             audience=ENTRA_CLIENT_ID,
-            issuer=f"https://login.microsoftonline.com/{ENTRA_TENANT_ID}/v2.0",
+            issuer=ISSUER,
         )
-    except Exception as exc:
-        raise HTTPException(status_code=401, detail=f"Token invalide : {exc}")
 
-    return {
-        "name": payload.get("name"),
-        "email": payload.get("preferred_username") or payload.get("email"),
-        "microsoft_id": payload.get("oid"),
-    }
+        # Vérification du scope
+        scopes = payload.get("scp", "").split()
+
+        if "access_as_user" not in scopes:
+            raise ValueError(
+                "Le token ne possède pas le scope access_as_user."
+            )
+
+        # Identité Microsoft
+        microsoft_id = payload.get("oid") or payload.get("sub")
+        name = payload.get("name", "")
+        email = (
+            payload.get("preferred_username")
+            or payload.get("email")
+            or payload.get("upn")
+        )
+
+        if not microsoft_id:
+            raise ValueError(
+                "Identifiant Microsoft absent du token."
+            )
+
+        if not email:
+            raise ValueError(
+                "Adresse utilisateur absente du token."
+            )
+
+        return {
+            "name": name,
+            "email": email,
+            "microsoft_id": microsoft_id,
+        }
+
+    except (JWTError, ValueError, KeyError) as exc:
+        raise ValueError(
+            f"Token Microsoft invalide : {exc}"
+        ) from exc
 
 
-def get_current_user(authorization: str | None = Header(default=None)) -> dict:
+def get_current_user(
+    authorization: str | None = Header(default=None),
+) -> dict:
     """
-    Dépendance FastAPI à utiliser dans les routes protégées :
-        user: dict = Depends(get_current_user)
+    Dépendance FastAPI pour les routes protégées.
 
-    Lit le header "Authorization: Bearer <token>" envoyé par le frontend.
+    Lit le header Authorization: Bearer <token>.
     """
+
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Token manquant")
 
@@ -68,18 +130,20 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
     return verify_token(token)
 
 
-def get_current_user_optional(authorization: str | None = Header(default=None)) -> dict:
+def get_current_user_optional(
+    authorization: str | None = Header(default=None),
+) -> dict:
     """
-    Variante "souple" utilisée pendant le développement, tant que le login
-    Microsoft n'est pas encore branché côté frontend.
+    Variante souple utilisée pendant le développement.
 
-    - Si un token est présent -> on le vérifie normalement.
-    - Si aucun token n'est présent -> on retourne un utilisateur "invité"
-      pour ne pas bloquer la démo (question posée sans être connecté).
-
-    A remplacer par get_current_user (obligatoire) une fois le login
-    Microsoft Entra ID branché des deux côtés (frontend + backend).
+    Si aucun token n'est présent, retourne un utilisateur invité.
     """
+
     if not authorization:
-        return {"name": "Invité", "email": "guest@epf.fr", "microsoft_id": "guest"}
+        return {
+            "name": "Invité",
+            "email": "guest@epf.fr",
+            "microsoft_id": "guest",
+        }
+
     return get_current_user(authorization)

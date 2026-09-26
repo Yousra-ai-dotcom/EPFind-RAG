@@ -13,17 +13,26 @@ AZURE_SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
 AZURE_SEARCH_API_KEY = os.getenv("AZURE_SEARCH_API_KEY")
 INDEX_NAME = os.getenv("AZURE_SEARCH_INDEX_NAME", "epfind-courses")
 
-if not AZURE_SEARCH_ENDPOINT:
-    raise ValueError("AZURE_SEARCH_ENDPOINT est manquant.")
+search_client = None
 
-if not AZURE_SEARCH_API_KEY:
-    raise ValueError("AZURE_SEARCH_API_KEY est manquant.")
 
-search_client = SearchClient(
-    endpoint=AZURE_SEARCH_ENDPOINT,
-    index_name=INDEX_NAME,
-    credential=AzureKeyCredential(AZURE_SEARCH_API_KEY),
-)
+def get_search_client():
+    global search_client
+
+    if search_client is None:
+        if not AZURE_SEARCH_ENDPOINT:
+            raise ValueError("AZURE_SEARCH_ENDPOINT est manquant.")
+
+        if not AZURE_SEARCH_API_KEY:
+            raise ValueError("AZURE_SEARCH_API_KEY est manquant.")
+
+        search_client = SearchClient(
+            endpoint=AZURE_SEARCH_ENDPOINT,
+            index_name=INDEX_NAME,
+            credential=AzureKeyCredential(AZURE_SEARCH_API_KEY),
+        )
+
+    return search_client
 
 def course_is_indexed(
     module: str,
@@ -48,7 +57,7 @@ def course_is_indexed(
         f"and course eq '{safe_course}'"
     )
 
-    results = search_client.search(
+    results = get_search_client().search(
         search_text="*",
         filter=filter_expression,
         select=["id"],
@@ -86,7 +95,7 @@ def retrieve(
 
     filter_expression = " and ".join(filters) if filters else None
 
-    results = search_client.search(
+    results = get_search_client().search(
         search_text=None,
         vector_queries=[vector_query],
         filter=filter_expression,
@@ -131,7 +140,7 @@ def get_course_content(
 
     safe_course = course.replace("'", "''")
 
-    results = search_client.search(
+    results = get_search_client().search(
         search_text="*",
         filter=f"course eq '{safe_course}'",
         select=[

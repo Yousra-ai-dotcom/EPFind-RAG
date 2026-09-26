@@ -1,11 +1,20 @@
 /**
- * Logo "EPF Find" — inspiré des couleurs du logo EPF (rose/magenta),
+ * Logo "EPF Find" - inspiré des couleurs du logo EPF (rose/magenta),
  * recréé en SVG (pas une copie du logo officiel de l'école).
+ * Cliquable : renvoie vers l'accueil (ou vers `href`).
  */
 
-export default function Logo({ size = 40 }: { size?: number }) {
+import Link from "next/link";
+
+export default function Logo({
+  size = 40,
+  href = "/",
+}: {
+  size?: number;
+  href?: string;
+}) {
   return (
-    <div className="flex items-center gap-2">
+    <Link href={href} className="flex items-center gap-2" aria-label="Accueil EPF Find">
       <svg
         width={size}
         height={size}
@@ -31,6 +40,6 @@ export default function Logo({ size = 40 }: { size?: number }) {
       <span className="text-xl font-extrabold tracking-tight text-epf-dark">
         EPF <span className="text-epf-pink">Find</span>
       </span>
-    </div>
+    </Link>
   );
 }

@@ -12,7 +12,7 @@ import Sidebar from "@/components/Sidebar";
 import ModuleCourseSelect from "@/components/ModuleCourseSelect";
 import VoiceButton from "@/components/VoiceButton";
 import Chat, { ChatMessage } from "@/components/Chat";
-import { askQuestion } from "@/lib/api";
+import { askQuestion, getMe } from "@/lib/api";
 import {
   StoredConversation,
   listConversations,
@@ -32,6 +32,25 @@ function ChatPageContent() {
   const [course, setCourse] = useState("");
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    email: string;
+    microsoft_id: string;
+  } | null>(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const result = await getMe();
+        console.log("Résultat /me :", result);
+        setCurrentUser(result.user);
+      } catch (error) {
+        console.error("Erreur /me :", error);
+      }
+    }
+
+    loadUser();
+  }, []);
 
   const active = conversations.find((c) => c.id === activeId) || null;
   const messages: ChatMessage[] = active?.messages || [];
@@ -43,6 +62,7 @@ function ChatPageContent() {
     setConversations(all);
 
     const requestedId = searchParams.get("conversation");
+
     if (requestedId && all.find((c) => c.id === requestedId)) {
       setActiveId(requestedId);
     } else if (all.length > 0) {
@@ -50,6 +70,7 @@ function ChatPageContent() {
     } else {
       handleNewConversation();
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -63,7 +84,7 @@ function ChatPageContent() {
     setActiveId(conv.id);
     setModule("");
     setCourse("");
-    router.replace("/chat"); // enlève ?conversation=... de l'URL
+    router.replace("/chat");
   }
 
   function handleOpenConversation(id: string) {
@@ -82,7 +103,12 @@ function ChatPageContent() {
     setLoading(true);
 
     try {
-      const result = await askQuestion(text, module || undefined, course || undefined);
+      const result = await askQuestion(
+        text,
+        module || undefined,
+        course || undefined,
+      );
+
       addMessage(activeId, {
         role: "assistant",
         content: result.answer,
@@ -106,18 +132,27 @@ function ChatPageContent() {
 
   function handleFeedback(messageIndex: number, liked: boolean | null) {
     if (!activeId) return;
+
     setMessageFeedback(activeId, messageIndex, liked);
     refresh();
   }
 
   async function handleRegenerate(messageIndex: number) {
     if (!activeId || !active) return;
+
     const lastQuestion = active.messages[messageIndex - 1]?.content;
+
     if (!lastQuestion) return;
 
     setLoading(true);
+
     try {
-      const result = await askQuestion(lastQuestion, module || undefined, course || undefined);
+      const result = await askQuestion(
+        lastQuestion,
+        module || undefined,
+        course || undefined,
+      );
+
       replaceMessage(activeId, messageIndex, {
         role: "assistant",
         content: result.answer,
@@ -125,7 +160,7 @@ function ChatPageContent() {
         liked: null,
       });
     } catch {
-      // en cas d'erreur, on laisse l'ancienne réponse telle quelle
+      // En cas d'erreur, on laisse l'ancienne réponse telle quelle.
     } finally {
       refresh();
       setLoading(false);
@@ -144,6 +179,7 @@ function ChatPageContent() {
         >
           + Nouvelle conversation
         </button>
+
         <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
           {conversations.map((c) => (
             <button
@@ -162,8 +198,20 @@ function ChatPageContent() {
       </div>
 
       <main className="flex flex-1 flex-col p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-epf-dark">💬 Chat avec vos cours</h1>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-epf-dark">
+              💬 Chat avec vos cours
+            </h1>
+
+            {currentUser && (
+              <div className="mt-1 text-sm text-epf-gray">
+                Connectée : <strong>{currentUser.name}</strong> —{" "}
+                {currentUser.email}
+              </div>
+            )}
+          </div>
+
           <ModuleCourseSelect
             module={module}
             course={course}
@@ -172,7 +220,11 @@ function ChatPageContent() {
           />
         </div>
 
-        <Chat messages={messages} onFeedback={handleFeedback} onRegenerate={handleRegenerate} />
+        <Chat
+          messages={messages}
+          onFeedback={handleFeedback}
+          onRegenerate={handleRegenerate}
+        />
 
         <div className="mt-4 flex gap-2">
           <input
@@ -182,7 +234,9 @@ function ChatPageContent() {
             onKeyDown={(e) => e.key === "Enter" && handleAsk()}
             placeholder="Pose ta question sur tes cours EPF..."
           />
+
           <VoiceButton onTranscribed={(text) => sendQuestion(text)} />
+
           <button
             className="rounded-xl bg-epf-pink px-6 py-3 text-sm font-semibold text-white transition hover:bg-epf-pink-dark disabled:opacity-60"
             onClick={handleAsk}
@@ -195,9 +249,16 @@ function ChatPageContent() {
     </div>
   );
 }
+
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Chargement...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          Chargement...
+        </div>
+      }
+    >
       <ChatPageContent />
     </Suspense>
   );

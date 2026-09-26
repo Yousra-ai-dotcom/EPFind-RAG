@@ -8,3 +8,4 @@ msal
 python-jose
 python-multipart
 requests
+azure-search-documents
