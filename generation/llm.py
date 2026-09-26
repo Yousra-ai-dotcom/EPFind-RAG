@@ -1,6 +1,5 @@
 """
-Personne 3 — Prompt + LLM
-
+Prompt + LLM
 Rôle : gérer la connexion à Azure OpenAI (chat completions).
 """
 
@@ -9,45 +8,42 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
+
 load_dotenv()
 
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
-AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv(
-    "AZURE_OPENAI_CHAT_DEPLOYMENT"
-)
 
-if not AZURE_OPENAI_ENDPOINT:
-    raise ValueError("AZURE_OPENAI_ENDPOINT manquant dans .env")
+def call_llm(
+    prompt: str,
+    temperature: float = 0.3,
+    max_completion_tokens: int = 1200,
+) -> str:
+    """
+    Envoie un prompt à Azure OpenAI (déploiement GPT-5-mini) et retourne
+    le texte de la réponse du modèle.
+    """
 
-if not AZURE_OPENAI_KEY:
-    raise ValueError("AZURE_OPENAI_KEY manquant dans .env")
+    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    api_key = os.getenv("AZURE_OPENAI_API_KEY")
+    deployment = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
 
-if not AZURE_OPENAI_CHAT_DEPLOYMENT:
-    raise ValueError(
-        "AZURE_OPENAI_CHAT_DEPLOYMENT manquant dans .env"
+    if not endpoint:
+        raise ValueError("AZURE_OPENAI_ENDPOINT est manquant.")
+    if not api_key:
+        raise ValueError("AZURE_OPENAI_API_KEY est manquant.")
+    if not deployment:
+        raise ValueError("AZURE_OPENAI_CHAT_DEPLOYMENT est manquant.")
+
+    client = OpenAI(
+        api_key=api_key,
+        base_url=f"{endpoint.rstrip('/')}/openai/v1/",
     )
 
-client = OpenAI(
-    api_key=AZURE_OPENAI_KEY,
-    base_url=f"{AZURE_OPENAI_ENDPOINT.rstrip('/')}/openai/v1/",
-)
-
-
-def call_llm(prompt: str, temperature: float = 0.3) -> str:
-    """
-    Envoie un prompt à Azure OpenAI et retourne la réponse générée.
-    """
-
     response = client.chat.completions.create(
-        model=AZURE_OPENAI_CHAT_DEPLOYMENT,
+        model=deployment,
         messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
+            {"role": "user", "content": prompt}
         ],
-        temperature=temperature,
+        max_completion_tokens=max_completion_tokens,
     )
 
     return response.choices[0].message.content

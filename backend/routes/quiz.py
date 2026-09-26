@@ -1,11 +1,11 @@
-"""
-Route POST /quiz
-Responsable principal : Personne 3 (génération), Personne 2 (route + stockage résultats)
-"""
-
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from backend.services.quiz_service import (
+    generate_quiz_for_course,
+    save_quiz,
+    grade_quiz,
+)
 router = APIRouter()
 
 
@@ -13,26 +13,68 @@ class QuizRequest(BaseModel):
     course: str
     level: str = "facile"
     n_questions: int = 10
-    quiz_type: str = "qcm"  # "qcm" ou "vrai_faux"
+    quiz_type: str = "qcm"
 
 
 @router.post("/quiz")
 def create_quiz(request: QuizRequest):
     """
-    TODO (Personne 3 + Personne 2) :
-    - Récupérer le contenu du cours (search.retrieval)
-    - Appeler generation.quiz_generator.generate_quiz(...)
-    - Retourner la liste de questions au frontend
+    Génère un QCM à partir du cours sélectionné.
     """
-    raise NotImplementedError
+
+    try:
+        questions = generate_quiz_for_course(
+            course=request.course,
+            level=request.level,
+            n_questions=request.n_questions,
+        )
+
+        quiz_id = save_quiz(questions)
+
+        return {
+            "quiz_id": quiz_id,
+            "questions": questions,
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur pendant la génération du QCM : {str(error)}",
+        )
+
+class QuizSubmitRequest(BaseModel):
+    answers: list[int]
 
 
 @router.post("/quiz/{quiz_id}/submit")
-def submit_quiz(quiz_id: int):
+def submit_quiz(
+    quiz_id: int,
+    request: QuizSubmitRequest,
+):
     """
-    TODO (Personne 2) :
-    - Comparer les réponses de l'utilisateur aux bonnes réponses
-    - Enregistrer le score dans PostgreSQL
-    - Retourner le score + détail correct/incorrect
+    Corrige les réponses d'un QCM.
     """
-    raise NotImplementedError
+
+    try:
+        return grade_quiz(
+            quiz_id=quiz_id,
+            user_answers=request.answers,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur pendant la correction du QCM : {str(error)}",
+        )

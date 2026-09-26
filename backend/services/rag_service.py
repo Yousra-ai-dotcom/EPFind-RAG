@@ -1,20 +1,41 @@
 """
-Service central du RAG — relie retrieval (Personne 2) et génération (Personne 3).
-Responsable : Personne 2 (intégration)
+Service RAG principal d'EPFind.
 
-C'est la fonction que les routes /ask, /summarize, /quiz appellent en interne.
+Ce service orchestre la recherche des passages pertinents
+et la génération de la réponse finale.
 """
 
-from search.retrieval import retrieve
+from backend.services.search_service import search_course_content
 from generation.answer import build_answer
 
 
-def ask_rag(question: str, course: str | None = None, conversation_id: int | None = None) -> dict:
+def answer_question(
+    question: str,
+    module: str | None = None,
+    course: str | None = None,
+    top_k: int = 5,
+) -> dict:
     """
-    TODO (Personne 2) :
-    - chunks = retrieve(question, course)
-    - result = build_answer(question, chunks)
-    - Enregistrer en base (via services/... ou database/models.py)
-    - Retourner {"answer":..., "sources":..., "conversation_id":...}
+    Génère une réponse à une question en utilisant le pipeline RAG.
+
+    1. Recherche les passages pertinents dans Azure AI Search.
+    2. Transmet ces passages au module de génération.
+    3. Retourne la réponse générée avec ses sources.
     """
-    raise NotImplementedError
+
+    if not question or not question.strip():
+        raise ValueError("La question ne peut pas être vide.")
+
+    chunks = search_course_content(
+        question=question,
+        module=module,
+        course=course,
+        top_k=top_k,
+    )
+
+    result = build_answer(
+        question=question,
+        chunks=chunks,
+    )
+
+    return result

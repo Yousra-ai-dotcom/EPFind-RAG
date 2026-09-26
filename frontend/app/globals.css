@@ -1,3 +1,74 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: #f7f6fa;
+  color: #1a1523;
+}
+
+/* Barre de défilement fine, discrète (facultatif mais plus propre) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #e2d5e5;
+  border-radius: 8px;
+}
+
+/* ===== Thème sombre : s'active quand <html> porte la classe "dark" =====
+   On recolore les classes Tailwind déjà utilisées dans le projet, ce qui
+   évite de modifier chaque page. */
+.dark {
+  color-scheme: dark;
+}
+.dark body {
+  background-color: #120e1a;
+  color: #f3f1f7;
+}
+.dark .bg-\[\#f7f6fa\] {
+  background-color: #120e1a;
+}
+.dark .bg-white {
+  background-color: #1e1830;
+}
+.dark .bg-white\/60,
+.dark .hover\:bg-white\/60:hover {
+  background-color: rgb(255 255 255 / 0.08);
+}
+.dark .bg-epf-pink-light,
+.dark .hover\:bg-epf-pink-light:hover {
+  background-color: #3a1a2e;
+}
+.dark .bg-epf-pink-light\/40 {
+  background-color: rgb(230 0 126 / 0.12);
+}
+.dark .border-epf-pink-light {
+  border-color: #3d2f52;
+}
+.dark .text-epf-dark {
+  color: #f3f1f7;
+}
+.dark .text-epf-gray {
+  color: #a9a6b8;
+}
+.dark .bg-red-50 {
+  background-color: #3b1219;
+}
+.dark .border-red-200 {
+  border-color: #7f1d1d;
+}
+.dark .text-red-700 {
+  color: #fca5a5;
+}
+.dark .bg-green-50 {
+  background-color: #0f2e1c;
+}

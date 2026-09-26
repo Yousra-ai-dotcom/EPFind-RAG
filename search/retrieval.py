@@ -1,7 +1,3 @@
-"""
-Recherche vectorielle dans Azure AI Search.
-"""
-
 import os
 
 from dotenv import load_dotenv
@@ -9,109 +5,163 @@ from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.models import VectorizedQuery
 
-from search.embeddings import get_embedding
-
+from search.embeddings import generate_embedding
 
 load_dotenv()
 
 AZURE_SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
-AZURE_SEARCH_KEY = os.getenv("AZURE_SEARCH_KEY")
-AZURE_SEARCH_INDEX_NAME = os.getenv(
-    "AZURE_SEARCH_INDEX_NAME",
-    "epf-courses-index",
-)
+AZURE_SEARCH_API_KEY = os.getenv("AZURE_SEARCH_API_KEY")
+INDEX_NAME = os.getenv("AZURE_SEARCH_INDEX_NAME", "epfind-courses")
 
-if not AZURE_SEARCH_ENDPOINT:
-    raise ValueError("AZURE_SEARCH_ENDPOINT manquant")
-
-if not AZURE_SEARCH_KEY:
-    raise ValueError("AZURE_SEARCH_KEY manquant")
+search_client = None
 
 
-search_client = SearchClient(
-    endpoint=AZURE_SEARCH_ENDPOINT,
-    index_name=AZURE_SEARCH_INDEX_NAME,
-    credential=AzureKeyCredential(AZURE_SEARCH_KEY),
-)
+def get_search_client():
+    global search_client
 
+    if search_client is None:
+        if not AZURE_SEARCH_ENDPOINT:
+            raise ValueError("AZURE_SEARCH_ENDPOINT est manquant.")
+
+        if not AZURE_SEARCH_API_KEY:
+            raise ValueError("AZURE_SEARCH_API_KEY est manquant.")
+
+        search_client = SearchClient(
+            endpoint=AZURE_SEARCH_ENDPOINT,
+            index_name=INDEX_NAME,
+            credential=AzureKeyCredential(AZURE_SEARCH_API_KEY),
+        )
+
+    return search_client
+
+def course_is_indexed(
+    module: str,
+    course: str,
+) -> bool:
+    """
+    Check whether a course already has at least one chunk
+    in Azure AI Search.
+    """
+
+    if not module or not module.strip():
+        raise ValueError("Le module ne peut pas être vide.")
+
+    if not course or not course.strip():
+        raise ValueError("Le cours ne peut pas être vide.")
+
+    safe_module = module.replace("'", "''")
+    safe_course = course.replace("'", "''")
+
+    filter_expression = (
+        f"module eq '{safe_module}' "
+        f"and course eq '{safe_course}'"
+    )
+
+    results = get_search_client().search(
+        search_text="*",
+        filter=filter_expression,
+        select=["id"],
+        top=1,
+    )
+
+    return next(iter(results), None) is not None
 
 def retrieve(
     question: str,
-    course: str | None = None,
     top_k: int = 5,
-) -> list[dict]:
+    module: str | None = None,
+    course: str | None = None,
+):
+    if not question or not question.strip():
+        raise ValueError("La question ne peut pas être vide.")
 
-    # 1. Embedding de la question
-    question_embedding = get_embedding(question)
+    question_embedding = generate_embedding(question)
 
-    # 2. Création de la requête vectorielle
     vector_query = VectorizedQuery(
         vector=question_embedding,
         k_nearest_neighbors=top_k,
         fields="content_vector",
     )
 
-    # 3. Filtre éventuel sur le cours
-    filter_expression = None
+    filters = []
+
+    if module:
+        safe_module = module.replace("'", "''")
+        filters.append(f"module eq '{safe_module}'")
 
     if course:
-        filter_expression = f"course_name eq '{course}'"
+        safe_course = course.replace("'", "''")
+        filters.append(f"course eq '{safe_course}'")
 
-    # 4. Recherche dans Azure AI Search
-    results = search_client.search(
+    filter_expression = " and ".join(filters) if filters else None
+
+    results = get_search_client().search(
         search_text=None,
         vector_queries=[vector_query],
         filter=filter_expression,
         select=[
             "id",
-            "course_id",
-            "course_name",
-            "module",
-            "chapter",
-            "page",
             "content",
-            "document_name",
+            "module",
+            "course",
+            "page",
+            "document",
         ],
         top=top_k,
     )
 
-    # 5. Transformation des résultats
     chunks = []
 
     for result in results:
-        chunks.append(
-            {
-                "id": result["id"],
-                "content": result["content"],
-                "page": result["page"],
-                "document": result["document_name"],
-                "course": result["course_name"],
-                "score": result["@search.score"],
-            }
-        )
+        chunks.append({
+            "id": result.get("id"),
+            "content": result.get("content"),
+            "module": result.get("module"),
+            "course": result.get("course"),
+            "page": result.get("page"),
+            "document": result.get("document"),
+            "score": result.get("@search.score"),
+        })
 
     return chunks
 
+def get_course_content(
+    course: str,
+    max_chunks: int = 50,
+) -> list[dict]:
+    """
+    Récupère des chunks appartenant à un cours précis.
 
-if __name__ == "__main__":
+    Utilisé notamment pour générer les QCM et les fiches de révision.
+    """
 
-    question = (
-        "Qu'est-ce que l'intelligence artificielle ?"
+    if not course or not course.strip():
+        raise ValueError("Le cours ne peut pas être vide.")
+
+    safe_course = course.replace("'", "''")
+
+    results = get_search_client().search(
+        search_text="*",
+        filter=f"course eq '{safe_course}'",
+        select=[
+            "content",
+            "module",
+            "course",
+            "page",
+            "document",
+        ],
+        top=max_chunks,
     )
 
-    print(f"\nQuestion : {question}\n")
+    chunks = []
 
-    results = retrieve(question)
+    for result in results:
+        chunks.append({
+            "content": result.get("content", ""),
+            "module": result.get("module", ""),
+            "course": result.get("course", ""),
+            "page": result.get("page"),
+            "document": result.get("document", ""),
+        })
 
-    print(f"{len(results)} résultats trouvés.\n")
-
-    for i, result in enumerate(results, start=1):
-
-        print("=" * 60)
-        print(f"Résultat {i}")
-        print(f"Score : {result['score']}")
-        print(f"Page : {result['page']}")
-        print(f"Document : {result['document']}")
-        print()
-        print(result["content"][:500])
-        print()
+    return chunks

@@ -1,31 +1,109 @@
 /**
  * Client API — appelle le backend FastAPI.
- * Responsable : Personne 3 (avec Personne 2 pour la cohérence des contrats)
+ * Toutes les fonctions ajoutent automatiquement le token Microsoft
+ * (si l'utilisateur est connecté) dans le header Authorization.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { getAccessToken } from "./auth";
 
-export async function askQuestion(question: string, course?: string, conversationId?: number) {
-  // TODO: POST `${API_URL}/ask`
-  throw new Error("not implemented");
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await getAccessToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
 }
 
-export async function getCourses() {
-  // TODO: GET `${API_URL}/courses`
-  throw new Error("not implemented");
+async function handle(response: Response) {
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Erreur API (${response.status}) : ${text}`);
+  }
+  return response.json();
 }
 
-export async function generateQuiz(course: string, level: string, nQuestions: number) {
-  // TODO: POST `${API_URL}/quiz`
-  throw new Error("not implemented");
+export type Source = {
+  module: string;
+  course: string;
+  document: string;
+  page: number;
+};
+
+export async function askQuestion(
+  question: string,
+  course?: string,
+  conversationId?: number
+): Promise<{
+  answer: string;
+  sources: Source[];
+  conversation_id: number | null;
+}> {
+  const response = await fetch(`${API_URL}/ask`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({
+      question,
+      course: course || null,
+      conversation_id: conversationId || null,
+    }),
+  });
+  return handle(response);
 }
 
 export async function generateSummary(course: string, summaryType: string) {
-  // TODO: POST `${API_URL}/summarize`
-  throw new Error("not implemented");
+  const response = await fetch(`${API_URL}/summarize`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ course, summary_type: summaryType }),
+  });
+  return handle(response);
 }
 
-export async function getHistory() {
-  // TODO: GET `${API_URL}/history`
-  throw new Error("not implemented");
+export async function generateQuiz(course: string, level: string, nQuestions: number) {
+  const response = await fetch(`${API_URL}/quiz`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ course, level, n_questions: nQuestions }),
+  });
+  return handle(response);
+}
+
+export async function submitQuiz(quizId: number, answers: number[]) {
+  const response = await fetch(`${API_URL}/quiz/${quizId}/submit`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ answers }),
+  });
+  return handle(response);
+}
+
+export async function getCourses(): Promise<{ courses: string[] }> {
+  const response = await fetch(`${API_URL}/courses`, {
+    headers: await authHeaders(),
+  });
+  return handle(response);
+}
+
+export async function getHistory(): Promise<{
+  conversations: { id: number; title: string; created_at: string }[];
+}> {
+  const response = await fetch(`${API_URL}/history`, {
+    headers: await authHeaders(),
+  });
+  return handle(response);
+}
+
+export async function getConversation(conversationId: number) {
+  const response = await fetch(`${API_URL}/history/${conversationId}`, {
+    headers: await authHeaders(),
+  });
+  return handle(response);
+}
+export async function getMe() {
+  const response = await fetch(`${API_URL}/me`, {
+    headers: await authHeaders(),
+  });
+  return handle(response);
 }

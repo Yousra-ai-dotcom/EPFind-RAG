@@ -15,8 +15,10 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install backend deps
-        run: pip install -r backend/requirements.txt -r ingestion/requirements.txt pytest
+        run: pip install -r backend/requirements.txt -r ingestion/requirements.txt -r generation/requirements.txt pytest
       - name: Run tests
+        env:
+          PYTHONPATH: .
         run: pytest tests/
 
   frontend-build:

@@ -1,6 +1,6 @@
 /**
- * Layout racine Next.js — Responsable : Personne 3
- * Englobe toutes les pages (police, styles globaux, éventuel provider d'auth).
+ * Layout racine Next.js — englobe toutes les pages
+ * (police, styles globaux).
  */
 import "./globals.css";
 
