@@ -33,13 +33,11 @@ def prepare_course_chunks(
     and add the required EPFind metadata to every chunk.
     """
 
-    chunks = process_pdf(pdf_path)
-
-    for chunk in chunks:
-        chunk["module"] = module
-        chunk["course"] = course
-
-    return chunks
+    return process_pdf(
+        pdf_path=pdf_path,
+        module=module,
+        course=course,
+    )
 
 
 def index_course(

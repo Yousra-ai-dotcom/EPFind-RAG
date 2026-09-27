@@ -104,3 +104,52 @@ def test_process_pdf_ignores_empty_pages(
     mock_clean_text.assert_called_once_with("   ")
 
     mock_chunk_text.assert_not_called()
+
+@patch("ingestion.pipeline.attach_metadata")
+@patch("ingestion.pipeline.chunk_text")
+@patch("ingestion.pipeline.clean_text")
+@patch("ingestion.pipeline.load_pdf")
+def test_process_pdf_passes_module_and_course_metadata(
+    mock_load_pdf,
+    mock_clean_text,
+    mock_chunk_text,
+    mock_attach_metadata,
+):
+    """Vérifie que module et course sont transmis aux métadonnées."""
+
+    mock_load_pdf.return_value = [
+        {
+            "page": 3,
+            "text": "Cours sur le RAG",
+        }
+    ]
+
+    mock_clean_text.return_value = "Cours sur le RAG"
+    mock_chunk_text.return_value = ["Chunk RAG"]
+
+    mock_attach_metadata.return_value = {
+        "text": "Chunk RAG",
+        "module": "IA",
+        "course": "RAG",
+        "page": 3,
+        "document": "cours.pdf",
+    }
+
+    result = process_pdf(
+        "/tmp/cours.pdf",
+        module="IA",
+        course="RAG",
+    )
+
+    assert len(result) == 1
+
+    assert result[0]["module"] == "IA"
+    assert result[0]["course"] == "RAG"
+
+    mock_attach_metadata.assert_called_once_with(
+        chunk_text="Chunk RAG",
+        page=3,
+        document="cours.pdf",
+        module="IA",
+        course="RAG",
+    )
