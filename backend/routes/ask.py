@@ -9,7 +9,8 @@ et retourne la réponse générée avec ses sources.
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-
+from backend.auth.entra import get_current_user
+from backend.services.user_service import get_or_create_user
 from backend.database.database import get_db
 from backend.services.history_service import (
     add_message,
@@ -39,6 +40,7 @@ class AskResponse(BaseModel):
 def ask(
     request: AskRequest,
     db: Session = Depends(get_db),
+    microsoft_user: dict = Depends(get_current_user),
 ):
     """
     Answer a question using the EPFind RAG pipeline
@@ -46,11 +48,16 @@ def ask(
     """
 
     try:
+        user = get_or_create_user(
+            db=db,
+            microsoft_user=microsoft_user,
+        )
         # 1. Nouvelle conversation ou conversation existante
         if request.conversation_id is None:
             conversation = create_conversation(
                 db=db,
                 title=request.question,
+                user_id=user.id,
             )
         else:
             conversation = get_conversation_by_id(
@@ -63,6 +70,11 @@ def ask(
                     status_code=404,
                     detail="Conversation introuvable.",
                 )
+            if conversation.user_id != user.id:
+                raise HTTPException(
+                status_code=403,
+                detail="Accès interdit à cette conversation.",
+            )
 
         # 2. Génération RAG
         result = answer_question(
