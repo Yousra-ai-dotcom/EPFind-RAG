@@ -84,8 +84,15 @@ def upload_course(
     container = _get_container_client()
 
     path = Path(file_path)
+    module_name = module.strip()
+    course_name = course.strip()
+    filename = (
+        course_name
+        if course_name.lower().endswith(".pdf")
+        else f"{course_name}.pdf"
+    )
+    blob_name = f"{module_name}/{filename}"
 
-    blob_name = f"{module.strip()}/{path.name}"
 
     blob_client = container.get_blob_client(
         blob_name
@@ -99,9 +106,9 @@ def upload_course(
 
     return {
         "blob_name": blob_name,
-        "module": module.strip(),
-        "course": course.strip(),
-        "document": path.name,
+        "module": module_name,
+        "course": course_name,
+        "document": filename,
     }
 
 

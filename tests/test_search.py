@@ -72,3 +72,83 @@ def test_retrieve(mock_generate_embedding, mock_search_client):
     )
 
     mock_search_client.search.assert_called_once()
+
+@patch("search.retrieval.get_search_client")
+def test_course_is_indexed(mock_get_search_client):
+    """Vérifie qu'un cours présent dans Azure Search est détecté."""
+
+    mock_client = MagicMock()
+    mock_get_search_client.return_value = mock_client
+
+    mock_client.search.return_value = [
+        {"id": "chunk-1"}
+    ]
+
+    from search.retrieval import course_is_indexed
+
+    result = course_is_indexed(
+        module="GIT",
+        course="Introduction",
+    )
+
+    assert result is True
+
+    mock_client.search.assert_called_once()
+
+    call_kwargs = mock_client.search.call_args.kwargs
+
+    assert (
+        call_kwargs["filter"]
+        == "module eq 'GIT' and course eq 'Introduction'"
+    )
+
+    assert call_kwargs["select"] == ["id"]
+    assert call_kwargs["top"] == 1
+
+
+@patch("search.retrieval.get_search_client")
+def test_delete_indexed_course(mock_get_search_client):
+    """Vérifie la suppression de tous les chunks d'un cours."""
+
+    mock_client = MagicMock()
+    mock_get_search_client.return_value = mock_client
+
+    mock_client.search.return_value = [
+        {"id": "chunk-1"},
+        {"id": "chunk-2"},
+        {"id": "chunk-3"},
+    ]
+
+    mock_client.delete_documents.return_value = [
+        MagicMock(succeeded=True),
+        MagicMock(succeeded=True),
+        MagicMock(succeeded=True),
+    ]
+
+    from search.retrieval import delete_indexed_course
+
+    deleted = delete_indexed_course(
+        module="GIT",
+        course="Introduction",
+    )
+
+    assert deleted == 3
+
+    mock_client.search.assert_called_once()
+
+    search_kwargs = mock_client.search.call_args.kwargs
+
+    assert (
+        search_kwargs["filter"]
+        == "module eq 'GIT' and course eq 'Introduction'"
+    )
+
+    assert search_kwargs["select"] == ["id"]
+
+    mock_client.delete_documents.assert_called_once_with(
+        documents=[
+            {"id": "chunk-1"},
+            {"id": "chunk-2"},
+            {"id": "chunk-3"},
+        ]
+    )
