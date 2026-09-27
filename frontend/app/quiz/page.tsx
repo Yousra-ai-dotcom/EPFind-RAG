@@ -50,8 +50,9 @@ export default function QuizPage() {
       setAnswers([]);
       setStep("playing");
       setCurrentIndex(0);
-    } catch {
-      setToast(t("quiz_error"));
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "";
+      setToast(detail ? `${t("quiz_error")} (${detail})` : t("quiz_error"));
     } finally {
       setLoading(false);
     }

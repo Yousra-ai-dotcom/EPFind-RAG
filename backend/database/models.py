@@ -74,6 +74,11 @@ class Message(Base):
     )
     role: Mapped[str] = mapped_column(String(20))
     content: Mapped[str] = mapped_column(Text)
+    # Sources RAG (module/cours/document/page) sérialisées en JSON, pour que
+    # les sources d'une réponse ne disparaissent plus quand on rouvre une
+    # ancienne conversation depuis l'Historique. Nullable : les anciens
+    # messages déjà en base n'en ont pas.
+    sources: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,

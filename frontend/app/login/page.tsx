@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 import { loginWithMicrosoft } from "@/lib/auth";
@@ -15,6 +15,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  // Cette page est toujours pensée pour un fond clair (dégradé rouge/violet +
+  // carte blanche). Si l'étudiant avait choisi le thème sombre avant de se
+  // déconnecter, la classe "dark" restait posée sur <html> (elle n'est
+  // retirée que dans Sidebar, qui n'existe pas sur cette page), et
+  // globals.css recolore alors text-epf-dark en blanc cassé -> le texte du
+  // logo devenait quasi invisible sur la carte blanche. On force donc le
+  // mode clair ici, quoi qu'il arrive.
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+  }, []);
 
   async function handleLogin() {
     setLoading(true);

@@ -91,12 +91,13 @@ def ask(
             content=request.question,
         )
 
-        # 4. Sauvegarde de la réponse
+        # 4. Sauvegarde de la réponse (avec ses sources, pour l'Historique)
         add_message(
             db=db,
             conversation_id=conversation.id,
             role="assistant",
             content=result["answer"],
+            sources=result.get("sources"),
         )
 
         # 5. Réponse envoyée au frontend

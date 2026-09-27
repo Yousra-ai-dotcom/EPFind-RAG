@@ -40,9 +40,10 @@ export default function RevisionPage() {
       const data = await generateSummary(course, summaryType, module || undefined);
       setResult(data.summary);
       setToast({ message: t("revision_done"), type: "success" });
-    } catch {
+    } catch (err) {
       setResult("");
-      setToast({ message: t("revision_error"), type: "error" });
+      const detail = err instanceof Error ? err.message : "";
+      setToast({ message: detail ? `${t("revision_error")} (${detail})` : t("revision_error"), type: "error" });
     } finally {
       setLoading(false);
     }

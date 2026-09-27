@@ -12,6 +12,7 @@ from backend.services.activity_log import get_activities
 from backend.services.history_service import (
     get_conversation_by_id,
     get_conversations,
+    parse_message_sources,
 )
 from backend.services.user_service import get_or_create_user
 
@@ -119,6 +120,7 @@ def get_conversation(
                 "id": message.id,
                 "role": message.role,
                 "content": message.content,
+                "sources": parse_message_sources(message),
                 "created_at": message.created_at,
             }
             for message in conversation.messages

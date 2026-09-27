@@ -4,6 +4,9 @@
  * utiliser l'application.
  */
 
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 
@@ -15,6 +18,12 @@ const FEATURES = [
 ];
 
 export default function HomePage() {
+  // Même correctif que /login : cette page publique doit toujours
+  // s'afficher en clair, même si "dark" est resté posé sur <html>.
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#f7f6fa]">
       <header className="flex items-center justify-between border-b border-epf-pink-light bg-white px-8 py-4">

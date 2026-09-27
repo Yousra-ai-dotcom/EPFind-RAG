@@ -2,6 +2,8 @@
 Service de gestion de l'historique des conversations EPFind.
 """
 
+import json
+
 from sqlalchemy.orm import Session
 
 from backend.database.models import Conversation, Message
@@ -31,8 +33,9 @@ def add_message(
     conversation_id: int,
     role: str,
     content: str,
+    sources: list[dict] | None = None,
 ) -> Message:
-    """Ajoute un message à une conversation."""
+    """Ajoute un message à une conversation (avec ses sources RAG, si présentes)."""
 
     if role not in {"user", "assistant"}:
         raise ValueError("Le rôle doit être 'user' ou 'assistant'.")
@@ -52,6 +55,7 @@ def add_message(
         conversation_id=conversation_id,
         role=role,
         content=content,
+        sources=json.dumps(sources) if sources else None,
     )
 
     db.add(message)
@@ -59,6 +63,16 @@ def add_message(
     db.refresh(message)
 
     return message
+
+
+def parse_message_sources(message: Message) -> list[dict]:
+    """Décode le JSON des sources d'un message (liste vide si absent/invalide)."""
+    if not message.sources:
+        return []
+    try:
+        return json.loads(message.sources)
+    except (TypeError, ValueError):
+        return []
 
 
 def get_conversations(

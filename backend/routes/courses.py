@@ -69,7 +69,7 @@ def download_course_pdf(course: str, module: str | None = None):
             (
                 doc for doc in course_documents
                 if doc.get("course") == course
-                and (module is None or doc.get("module") == module)
+
             ),
             None,
         )

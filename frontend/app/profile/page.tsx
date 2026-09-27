@@ -1,19 +1,18 @@
 /**
  * Page Profil ("/profile")
  * Thème et langue : appliqués à tout le site et mémorisés dans le navigateur.
- * Nom et email : données fictives en attendant le compte Microsoft.
+ * Nom et email : ceux du compte Microsoft EPF connecté (plus de données fictives).
  */
 
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
-import { logout } from "@/lib/auth";
+import { getEmail, getFirstName, logout } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { useTheme, useLanguage, Language } from "@/lib/preferences";
-
-const FAKE_USER = { name: "Étudiant EPF", email: "prenom.nom@epfedu.fr" };
 
 export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
@@ -21,6 +20,17 @@ export default function ProfilePage() {
   const router = useRouter();
   const t = useT();
   const dark = theme === "dark";
+
+  const [firstName, setFirstName] = useState("");
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    setFirstName(getFirstName());
+    setEmail(getEmail());
+  }, []);
+
+  const displayName = firstName || t("profile_title");
+  const displayInitial = (firstName || "E").charAt(0).toUpperCase();
 
   async function handleLogout() {
     try {
@@ -44,11 +54,11 @@ export default function ProfilePage() {
           {/* Identité */}
           <section className={`flex items-center gap-4 ${card}`}>
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-epf-pink text-xl font-bold text-white">
-              {FAKE_USER.name.charAt(0)}
+              {displayInitial}
             </span>
             <div>
-              <p className="font-semibold text-epf-dark">{FAKE_USER.name}</p>
-              <p className="text-sm text-epf-gray">{FAKE_USER.email}</p>
+              <p className="font-semibold text-epf-dark">{displayName}</p>
+              <p className="text-sm text-epf-gray">{email || "—"}</p>
             </div>
           </section>
 
