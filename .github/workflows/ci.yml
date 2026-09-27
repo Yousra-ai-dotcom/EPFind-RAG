@@ -38,7 +38,7 @@ jobs:
       - name: Run tests
         env:
           PYTHONPATH: .
-          DATABASE_URL: postgresql://epfind:epfind_test@localhost:5432/epf_find
+          DATABASE_URL: postgresql+psycopg2://epfind:epfind_test@localhost:5432/epf_find
         run: pytest tests/
 
   frontend-build:
