@@ -19,32 +19,17 @@ def attach_metadata(
     chunk_text: str,
     page: int,
     document: str,
+    module: str = "",
+    course: str = "",
 ) -> dict:
     """
-    Attach basic metadata to a text chunk.
-
-    Module and course metadata are added later
-    by the course management / indexing pipeline.
+    Attach metadata to a text chunk.
     """
 
     return {
         "text": chunk_text,
+        "module": module,
+        "course": course,
         "page": page,
         "document": document,
     }
-
-    
-
-
-if __name__ == "__main__":
-    # Exemple de test
-    chunk = attach_metadata(
-        chunk_text="La régression linéaire est une méthode...",
-        course="Machine Learning",
-        module="Artificial Intelligence",
-        chapter="Regression",
-        page=12,
-        document="cours-01.pdf",
-    )
-
-    print(chunk)
