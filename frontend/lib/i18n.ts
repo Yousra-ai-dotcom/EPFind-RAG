@@ -30,7 +30,8 @@ const fr = {
   courses_card_sub: "Cours indexé dans EPFind",
   courses_choose_module: "Choisissez d'abord un module",
   courses_module_label: "Module",
-  courses_open: "Ouvrir",
+  courses_open: "Ouvrir le PDF",
+  courses_discuss: "Discuter dans le Chat",
 
   history_title: "Historique",
   history_loading: "Chargement de l'historique...",
@@ -135,7 +136,8 @@ const en: Record<TKey, string> = {
   courses_card_sub: "Course indexed in EPFind",
   courses_choose_module: "Choose a module first",
   courses_module_label: "Module",
-  courses_open: "Open",
+  courses_open: "Open PDF",
+  courses_discuss: "Discuss in Chat",
 
   history_title: "History",
   history_loading: "Loading history...",

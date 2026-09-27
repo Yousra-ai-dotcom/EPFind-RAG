@@ -13,7 +13,7 @@ import ModuleCourseSelect from "@/components/ModuleCourseSelect";
 import VoiceButton from "@/components/VoiceButton";
 import Toast from "@/components/Toast";
 import Chat, { ChatMessage } from "@/components/Chat";
-import { askQuestion, getHistory, getConversation, HistoryItem } from "@/lib/api";
+import { askQuestion, getHistory, getConversation, HistoryItem, Source } from "@/lib/api";
 import { getFirstName } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 
@@ -57,10 +57,14 @@ function ChatPageContent() {
       getConversation(id)
         .then((data) => {
           setMessages(
-            data.messages.map((m: { role: "user" | "assistant"; content: string }) => ({
-              role: m.role,
-              content: m.content,
-            }))
+            data.messages.map(
+              (m: { role: "user" | "assistant"; content: string; sources?: Source[] }) => ({
+                role: m.role,
+                content: m.content,
+                sources: m.sources,
+                liked: null,
+              })
+            )
           );
         })
         .catch(() => setMessages([]));
@@ -79,10 +83,14 @@ function ChatPageContent() {
     getConversation(id)
       .then((data) => {
         setMessages(
-          data.messages.map((m: { role: "user" | "assistant"; content: string }) => ({
-            role: m.role,
-            content: m.content,
-          }))
+          data.messages.map(
+            (m: { role: "user" | "assistant"; content: string; sources?: Source[] }) => ({
+              role: m.role,
+              content: m.content,
+              sources: m.sources,
+              liked: null,
+            })
+          )
         );
       })
       .catch(() => setMessages([]));

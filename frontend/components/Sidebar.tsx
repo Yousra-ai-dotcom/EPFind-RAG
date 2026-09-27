@@ -7,10 +7,11 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Logo from "./Logo";
-import { logout, useRequireAuth } from "@/lib/auth";
+import { getFirstName, logout, useRequireAuth } from "@/lib/auth";
 import { useApplyPreferences } from "@/lib/preferences";
 import { useT, TKey } from "@/lib/i18n";
 
@@ -28,6 +29,13 @@ export default function Sidebar() {
   const t = useT();
   useApplyPreferences();
   useRequireAuth(); // connexion Microsoft obligatoire pour accéder à l'app
+
+  const [initial, setInitial] = useState("E");
+
+  useEffect(() => {
+    const firstName = getFirstName();
+    if (firstName) setInitial(firstName.charAt(0).toUpperCase());
+  }, []);
 
   async function handleLogout() {
     try {
@@ -72,7 +80,7 @@ export default function Sidebar() {
           }`}
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-epf-pink text-sm font-bold text-white">
-            E
+            {initial}
           </span>
           <span className="text-sm font-semibold text-white">{t("nav_profile")}</span>
         </Link>

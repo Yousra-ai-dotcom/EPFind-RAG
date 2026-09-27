@@ -1,7 +1,9 @@
 /**
  * Page "Mes cours" ("/courses")
  * On choisit d'abord un module, puis les cours de ce module s'affichent
- * en grille de cartes cliquables (ouvre le Chat avec ce cours pré-sélectionné).
+ * en grille de cartes cliquables. Cliquer sur un cours ouvre directement
+ * son PDF (dans un nouvel onglet) ; un lien secondaire permet toujours
+ * d'ouvrir ce cours dans le Chat pour poser une question dessus.
  */
 
 "use client";
@@ -11,7 +13,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Loading from "@/components/Loading";
 import ErrorMessage from "@/components/ErrorMessage";
-import { getCourses } from "@/lib/api";
+import { getCourses, getCourseDownloadUrl } from "@/lib/api";
 import { DEMO_MODE, DEMO_COURSES } from "@/lib/demo";
 import { useT } from "@/lib/i18n";
 
@@ -50,7 +52,15 @@ export default function CoursesPage() {
     course.toLowerCase().includes(search.trim().toLowerCase())
   );
 
-  function openCourse(course: string) {
+  /** Ouvre directement le PDF du cours dans un nouvel onglet. */
+  function openCoursePdf(course: string) {
+    const url = getCourseDownloadUrl(course, module);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  /** Ouvre le Chat avec ce module/cours pré-sélectionné (pour poser une question dessus). */
+  function openCourseInChat(course: string, event: React.MouseEvent) {
+    event.stopPropagation();
     router.push(`/chat?module=${encodeURIComponent(module)}&course=${encodeURIComponent(course)}`);
   }
 
@@ -106,18 +116,25 @@ export default function CoursesPage() {
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {filtered.map((course) => (
-                    <button
+                    <div
                       key={course}
-                      onClick={() => openCourse(course)}
                       className="rounded-xl2 bg-white p-5 text-left shadow-sm transition hover:shadow-md hover:ring-2 hover:ring-epf-pink"
                     >
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-epf-pink-light text-lg">
-                        📘
-                      </div>
-                      <h2 className="text-sm font-semibold text-epf-dark">{course}</h2>
-                      <p className="mt-1 text-xs text-epf-gray">{t("courses_card_sub")}</p>
-                      <p className="mt-2 text-xs font-semibold text-epf-pink">{t("courses_open")} →</p>
-                    </button>
+                      <button onClick={() => openCoursePdf(course)} className="block w-full text-left">
+                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-epf-pink-light text-lg">
+                          📘
+                        </div>
+                        <h2 className="text-sm font-semibold text-epf-dark">{course}</h2>
+                        <p className="mt-1 text-xs text-epf-gray">{t("courses_card_sub")}</p>
+                        <p className="mt-2 text-xs font-semibold text-epf-pink">{t("courses_open")} →</p>
+                      </button>
+                      <button
+                        onClick={(e) => openCourseInChat(course, e)}
+                        className="mt-2 text-xs font-medium text-epf-gray underline hover:text-epf-pink"
+                      >
+                        💬 {t("courses_discuss")}
+                      </button>
+                    </div>
                   ))}
                 </div>
               </>
