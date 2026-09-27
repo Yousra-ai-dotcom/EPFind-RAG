@@ -7,7 +7,14 @@ le moteur de recherche vectorielle Azure AI Search.
 
 from search.retrieval import retrieve
 
+MODULE_ALIASES = {
+    "ia-generative": "IA-Generative-et-Chatbots",
+    "Réseaux et Télécommunication": "Reseaux-et-Telecommunications",
+}
 
+COURSE_ALIASES = {
+    "Cours Chatbot": "Introduction IA Generative et Chatbots",
+}
 def search_course_content(
     question: str,
     module: str | None = None,
@@ -22,12 +29,14 @@ def search_course_content(
     'content'. La couche generation utilise le champ 'text'.
     Ce service adapte donc le format entre les deux couches.
     """
+    search_module = MODULE_ALIASES.get(module, module)
+    search_course = COURSE_ALIASES.get(course, course)
 
     results = retrieve(
         question=question,
         top_k=top_k,
-        module=module,
-        course=course,
+        module=search_module,
+        course=search_course,
     )
 
     chunks = []
