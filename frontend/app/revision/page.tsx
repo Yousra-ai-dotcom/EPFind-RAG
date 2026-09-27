@@ -7,15 +7,9 @@
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import ModuleCourseSelect from "@/components/ModuleCourseSelect";
+import Toast from "@/components/Toast";
 import { generateSummary } from "@/lib/api";
-
-const SUMMARY_TYPES = [
-  { value: "resume_rapide", label: "Résumé rapide" },
-  { value: "resume_detaille", label: "Résumé détaillé" },
-  { value: "points_cles", label: "Points clés" },
-  { value: "fiche_de_revision", label: "Fiche de révision" },
-  { value: "explication_pedagogique", label: "Explication pédagogique" },
-];
+import { useT } from "@/lib/i18n";
 
 export default function RevisionPage() {
   const [module, setModule] = useState("");
@@ -23,15 +17,32 @@ export default function RevisionPage() {
   const [summaryType, setSummaryType] = useState("resume_rapide");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const t = useT();
+
+  const SUMMARY_TYPES = [
+    { value: "resume_rapide", label: t("revision_type_quick") },
+    { value: "resume_detaille", label: t("revision_type_detailed") },
+    { value: "points_cles", label: t("revision_type_key_points") },
+    { value: "fiche_de_revision", label: t("revision_type_sheet") },
+    { value: "explication_pedagogique", label: t("revision_type_pedagogic") },
+  ];
 
   async function handleGenerate() {
+    if (!course) {
+      setToast({ message: t("revision_empty_course"), type: "error" });
+      return;
+    }
+
     setLoading(true);
     setResult("");
     try {
       const data = await generateSummary(course, summaryType, module || undefined);
       setResult(data.summary);
+      setToast({ message: t("revision_done"), type: "success" });
     } catch {
-      setResult("Une erreur est survenue, réessayez.");
+      setResult("");
+      setToast({ message: t("revision_error"), type: "error" });
     } finally {
       setLoading(false);
     }
@@ -42,11 +53,11 @@ export default function RevisionPage() {
       <Sidebar />
 
       <main className="flex-1 overflow-y-auto p-6">
-        <h1 className="mb-6 text-xl font-bold text-epf-dark">📖 Réviser un cours</h1>
+        <h1 className="mb-6 text-xl font-bold text-epf-dark">📖 {t("revision_title")}</h1>
 
         <div className="max-w-2xl rounded-xl2 bg-white p-6 shadow-sm">
           <label className="mb-2 block text-sm font-semibold text-epf-dark">
-            Module et cours
+            {t("revision_module_course")}
           </label>
           <ModuleCourseSelect
             module={module}
@@ -56,7 +67,7 @@ export default function RevisionPage() {
           />
 
           <label className="mb-2 mt-6 block text-sm font-semibold text-epf-dark">
-            Comment voulez-vous réviser ?
+            {t("revision_how")}
           </label>
           <div className="flex flex-col gap-2">
             {SUMMARY_TYPES.map((type) => (
@@ -83,9 +94,9 @@ export default function RevisionPage() {
           <button
             className="mt-6 w-full rounded-xl bg-epf-pink py-3 text-sm font-semibold text-white transition hover:bg-epf-pink-dark disabled:opacity-60"
             onClick={handleGenerate}
-            disabled={loading || !course}
+            disabled={loading}
           >
-            {loading ? "Génération..." : "Générer ma fiche de révision"}
+            {loading ? t("revision_generating") : t("revision_generate")}
           </button>
         </div>
 
@@ -95,6 +106,10 @@ export default function RevisionPage() {
           </div>
         )}
       </main>
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
     </div>
   );
 }

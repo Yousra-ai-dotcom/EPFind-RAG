@@ -6,11 +6,14 @@ from backend.services.quiz_service import (
     save_quiz,
     grade_quiz,
 )
+from backend.services.activity_log import log_activity
+
 router = APIRouter()
 
 
 class QuizRequest(BaseModel):
     course: str
+    module: str | None = None
     level: str = "facile"
     n_questions: int = 10
     quiz_type: str = "qcm"
@@ -30,6 +33,13 @@ def create_quiz(request: QuizRequest):
         )
 
         quiz_id = save_quiz(questions)
+
+        log_activity(
+            activity_type="quiz",
+            title=f"QCM — {request.course} ({request.level})",
+            module=request.module,
+            course=request.course,
+        )
 
         return {
             "quiz_id": quiz_id,
@@ -57,10 +67,6 @@ def submit_quiz(
     quiz_id: int,
     request: QuizSubmitRequest,
 ):
-    """
-    Corrige les réponses d'un QCM.
-    """
-
     try:
         return grade_quiz(
             quiz_id=quiz_id,

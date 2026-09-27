@@ -6,8 +6,10 @@
 
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import CourseSelector from "@/components/CourseSelector";
+import ModuleCourseSelect from "@/components/ModuleCourseSelect";
+import Toast from "@/components/Toast";
 import { generateQuiz, submitQuiz } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 type Question = {
   question: string;
@@ -17,11 +19,14 @@ type Question = {
 };
 
 export default function QuizPage() {
+  const t = useT();
   const [step, setStep] = useState<"config" | "playing" | "finished">("config");
+  const [module, setModule] = useState("");
   const [course, setCourse] = useState("");
   const [level, setLevel] = useState("facile");
   const [nQuestions, setNQuestions] = useState(10);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState("");
 
   const [quizId, setQuizId] = useState<number | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -32,16 +37,21 @@ export default function QuizPage() {
   const [finalScore, setFinalScore] = useState<{ score: number; total: number } | null>(null);
 
   async function handleStart() {
+    if (!course) {
+      setToast(t("quiz_empty_course"));
+      return;
+    }
+
     setLoading(true);
     try {
-      const data = await generateQuiz(course, level, nQuestions);
+      const data = await generateQuiz(course, level, nQuestions, module || undefined);
       setQuizId(data.quiz_id);
       setQuestions(data.questions);
       setAnswers([]);
       setStep("playing");
       setCurrentIndex(0);
     } catch {
-      alert("Impossible de générer le QCM pour ce cours. Réessayez.");
+      setToast(t("quiz_error"));
     } finally {
       setLoading(false);
     }
@@ -71,25 +81,34 @@ export default function QuizPage() {
       <div className="flex h-screen bg-[#f7f6fa]">
         <Sidebar />
         <main className="flex-1 p-6">
-          <h1 className="mb-6 text-xl font-bold text-epf-dark">📝 Créer un QCM</h1>
+          <h1 className="mb-6 text-xl font-bold text-epf-dark">📝 {t("quiz_title")}</h1>
 
           <div className="max-w-md rounded-xl2 bg-white p-6 shadow-sm">
-            <label className="mb-2 block text-sm font-semibold text-epf-dark">Cours</label>
-            <CourseSelector value={course} onChange={setCourse} />
+            <label className="mb-2 block text-sm font-semibold text-epf-dark">
+              {t("quiz_module_course")}
+            </label>
+            <ModuleCourseSelect
+              module={module}
+              course={course}
+              onModuleChange={setModule}
+              onCourseChange={setCourse}
+            />
 
-            <label className="mb-2 mt-4 block text-sm font-semibold text-epf-dark">Niveau</label>
+            <label className="mb-2 mt-4 block text-sm font-semibold text-epf-dark">
+              {t("quiz_level")}
+            </label>
             <select
               className="w-full rounded-xl border border-epf-pink-light px-4 py-2.5 text-sm"
               value={level}
               onChange={(e) => setLevel(e.target.value)}
             >
-              <option value="facile">Facile</option>
-              <option value="moyen">Moyen</option>
-              <option value="difficile">Difficile</option>
+              <option value="facile">{t("quiz_level_easy")}</option>
+              <option value="moyen">{t("quiz_level_medium")}</option>
+              <option value="difficile">{t("quiz_level_hard")}</option>
             </select>
 
             <label className="mb-2 mt-4 block text-sm font-semibold text-epf-dark">
-              Nombre de questions
+              {t("quiz_n_questions")}
             </label>
             <input
               type="number"
@@ -103,12 +122,13 @@ export default function QuizPage() {
             <button
               className="mt-6 w-full rounded-xl bg-epf-pink py-3 text-sm font-semibold text-white transition hover:bg-epf-pink-dark disabled:opacity-60"
               onClick={handleStart}
-              disabled={!course || loading}
+              disabled={loading}
             >
-              {loading ? "Génération du QCM..." : "Commencer"}
+              {loading ? t("quiz_starting") : t("quiz_start")}
             </button>
           </div>
         </main>
+        {toast && <Toast message={toast} type="error" onClose={() => setToast("")} />}
       </div>
     );
   }
@@ -121,7 +141,7 @@ export default function QuizPage() {
         <main className="flex-1 p-6">
           <div className="mx-auto max-w-xl rounded-xl2 bg-white p-6 shadow-sm">
             <p className="mb-2 text-xs font-medium text-epf-gray">
-              Question {currentIndex + 1} / {questions.length}
+              {t("quiz_question_of", { current: currentIndex + 1, total: questions.length })}
             </p>
             <h2 className="mb-4 text-lg font-semibold text-epf-dark">{current.question}</h2>
 
@@ -152,19 +172,19 @@ export default function QuizPage() {
                 onClick={handleValidate}
                 disabled={selectedOption === null}
               >
-                Valider
+                {t("quiz_validate")}
               </button>
             ) : (
               <div className="mt-6">
                 <p className="mb-1 font-semibold">
-                  {selectedOption === current.correct_answer ? "✓ Correct !" : "✗ Incorrect"}
+                  {selectedOption === current.correct_answer ? t("quiz_correct") : t("quiz_incorrect")}
                 </p>
                 <p className="mb-4 text-sm text-epf-gray">{current.explanation}</p>
                 <button
                   className="rounded-xl bg-epf-pink px-6 py-2.5 text-sm font-semibold text-white"
                   onClick={handleNext}
                 >
-                  {currentIndex + 1 < questions.length ? "Question suivante" : "Voir le score"}
+                  {currentIndex + 1 < questions.length ? t("quiz_next") : t("quiz_see_score")}
                 </button>
               </div>
             )}
@@ -179,7 +199,7 @@ export default function QuizPage() {
       <Sidebar />
       <main className="flex flex-1 items-center justify-center">
         <div className="rounded-xl2 bg-white p-10 text-center shadow-sm">
-          <h1 className="mb-2 text-2xl font-bold text-epf-dark">🎉 Test terminé</h1>
+          <h1 className="mb-2 text-2xl font-bold text-epf-dark">{t("quiz_finished")}</h1>
           <p className="text-3xl font-extrabold text-epf-pink">
             {finalScore?.score} / {finalScore?.total}
           </p>
@@ -187,7 +207,7 @@ export default function QuizPage() {
             className="mt-6 rounded-xl bg-epf-pink px-6 py-2.5 text-sm font-semibold text-white"
             onClick={() => setStep("config")}
           >
-            Refaire un QCM
+            {t("quiz_restart")}
           </button>
         </div>
       </main>

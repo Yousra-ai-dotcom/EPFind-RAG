@@ -1,15 +1,20 @@
 /**
  * Carte affichant les sources d'une réponse (module, cours, document, page).
- * Chaque source est cliquable : ouvre une popup avec le détail complet.
+ * Chaque source est cliquable : ouvre une popup avec le détail, et un lien
+ * pour ouvrir/télécharger le vrai PDF du cours (l'app ne sait pas encore
+ * ouvrir directement à la bonne page, ce n'est pas possible sans un lecteur
+ * PDF dédié, mais l'étudiant peut ouvrir le document et aller à la page indiquée).
  */
 
 "use client";
 
 import { useState } from "react";
-import { Source } from "@/lib/api";
+import { Source, getCourseDownloadUrl } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 export default function SourceCard({ sources }: { sources: Source[] }) {
   const [selected, setSelected] = useState<Source | null>(null);
+  const t = useT();
 
   if (!sources || sources.length === 0) return null;
 
@@ -44,13 +49,22 @@ export default function SourceCard({ sources }: { sources: Source[] }) {
               {selected.module && <li><b>Module :</b> {selected.module}</li>}
               <li><b>Cours :</b> {selected.course}</li>
               {selected.document && <li><b>Document :</b> {selected.document}</li>}
-              {selected.page && <li><b>Page :</b> {selected.page}</li>}
+              {selected.page && <li><b>Page :</b> {selected.page} (à chercher dans le PDF ci-dessous)</li>}
             </ul>
+
+            <a
+              href={getCourseDownloadUrl(selected.course, selected.module)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-block rounded-lg bg-epf-pink px-4 py-1.5 text-xs font-semibold text-white hover:bg-epf-pink-dark"
+            >
+              📄 Ouvrir le document PDF
+            </a>
             <button
               onClick={() => setSelected(null)}
-              className="mt-4 rounded-lg bg-epf-pink px-4 py-1.5 text-xs font-semibold text-white"
+              className="ml-2 mt-4 rounded-lg border border-epf-pink-light px-4 py-1.5 text-xs font-semibold text-epf-dark"
             >
-              Fermer
+              {t("common_close")}
             </button>
           </div>
         </div>
