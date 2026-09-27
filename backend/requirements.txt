@@ -10,3 +10,5 @@ python-multipart
 requests
 azure-search-documents
 av
+
+PyMuPDF

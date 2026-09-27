@@ -8,6 +8,8 @@
 
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   PublicClientApplication,
   Configuration,
@@ -37,9 +39,8 @@ function getMsalInstance(): PublicClientApplication {
   return msalInstance;
 }
 
-const loginScopes = [
-  `api://${CLIENT_ID}/access_as_user`,
-];
+const loginScopes = [`api://${CLIENT_ID}/access_as_user`];
+
 /** Ouvre la popup de connexion Microsoft et retourne le compte connecté. */
 export async function loginWithMicrosoft(): Promise<AccountInfo | null> {
   const instance = getMsalInstance();
@@ -67,8 +68,50 @@ export function getCurrentAccount(): AccountInfo | null {
 }
 
 /**
+ * Prénom de l'étudiant connecté, ou "".
+ *
+ * On ne se base PAS sur account.name : les comptes EPF affichent souvent
+ * "NOM Prénom" (à la française), donc prendre le premier mot donnait le
+ * nom de famille (ex: "AIT" au lieu de "Aya"). On utilise plutôt l'email
+ * (account.username), toujours au format prenom.nom@epfedu.fr, beaucoup
+ * plus fiable.
+ */
+export function getFirstName(): string {
+  const account = getCurrentAccount();
+  if (!account?.username) return "";
+
+  const localPart = account.username.split("@")[0]; // "aya.aitelcadi"
+  const firstName = localPart.split(".")[0]; // "aya"
+
+  if (!firstName) return "";
+  return firstName.charAt(0).toUpperCase() + firstName.slice(1); // "Aya"
+}
+
+/** Email complet de l'étudiant connecté, ou "". */
+export function getEmail(): string {
+  return getCurrentAccount()?.username || "";
+}
+
+/**
+ * Hook à appeler en haut de chaque page protégée : redirige vers /login
+ * si personne n'est connecté. Seule la page d'accueil et /login restent
+ * accessibles sans connexion (accès obligatoire par compte Microsoft EPF).
+ */
+export function useRequireAuth() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const account = getCurrentAccount();
+    if (!account) {
+      router.replace("/login");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
+/**
  * Récupère un token d'accès valide pour appeler le backend.
- * Retourne null si l'utilisateur n'est pas connecté (mode démo/invité).
+ * Retourne null si l'utilisateur n'est pas connecté.
  */
 export async function getAccessToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
@@ -85,7 +128,6 @@ export async function getAccessToken(): Promise<string | null> {
     });
     return result.accessToken;
   } catch {
-    // Le token silencieux a échoué -> on redemande une connexion interactive
     try {
       const result = await instance.acquireTokenPopup({ scopes: loginScopes });
       return result.accessToken;

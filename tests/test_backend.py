@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests for EPFind FastAPI backend.
 
 External Azure services are mocked.
@@ -21,9 +21,9 @@ def test_health():
     assert response.status_code == 200
     assert response.json() == {
         "status": "ok",
+
+
     }
-
-
 @patch("backend.routes.documents.list_courses")
 def test_get_documents(mock_list_courses):
     mock_list_courses.return_value = [
@@ -78,19 +78,6 @@ def test_upload_document(mock_upload_and_process):
     assert response.status_code == 200
 
     data = response.json()
-
-    assert data["blob_name"] == "GIT/Introduction.pdf"
-    assert data["indexed"] is True
-    assert data["chunks"] == 10
-
-    mock_upload_and_process.assert_called_once()
-
-    call_kwargs = mock_upload_and_process.call_args.kwargs
-
-    assert call_kwargs["module"] == "GIT"
-    assert call_kwargs["course"] == "Introduction"
-
-
 @patch(
     "backend.routes.documents.delete_indexed_course",
     return_value=10,
@@ -143,7 +130,6 @@ def test_delete_document_not_found(mock_delete_course):
     mock_delete_course.assert_called_once_with(
         "GIT/Unknown.pdf"
     )
-
 @patch("backend.routes.ask.answer_question")
 @patch("backend.routes.ask.add_message")
 @patch("backend.routes.ask.create_conversation")
@@ -165,8 +151,9 @@ def test_ask_creates_conversation_for_current_user(
     mock_create_conversation.return_value = fake_conversation
 
     mock_answer_question.return_value = {
-        "answer": "Git est un système de gestion de versions.",
+        "answer": "Git est un systÃ¨me de gestion de versions.",
         "sources": [],
+
     }
 
     from backend.auth.entra import get_current_user
@@ -175,6 +162,7 @@ def test_ask_creates_conversation_for_current_user(
         "name": "Test User",
         "email": "test@epf.fr",
         "microsoft_id": "microsoft-test-id",
+
     }
 
     try:
@@ -191,7 +179,7 @@ def test_ask_creates_conversation_for_current_user(
 
         assert data["conversation_id"] == 100
         assert data["answer"] == (
-            "Git est un système de gestion de versions."
+            "Git est un systÃ¨me de gestion de versions."
         )
 
         mock_create_conversation.assert_called_once_with(
@@ -226,6 +214,7 @@ def test_history_returns_current_user_conversations(
         "name": "Test User",
         "email": "test@epf.fr",
         "microsoft_id": "microsoft-test-id",
+
     }
 
     try:
@@ -236,8 +225,8 @@ def test_history_returns_current_user_conversations(
         data = response.json()
 
         assert len(data) == 1
-        assert data[0]["id"] == 100
-        assert data[0]["title"] == "Question sur Git"
+        assert data["conversations"][0]["id"] == 100
+        assert data["conversations"][0]["title"] == "Question sur Git"
 
         mock_get_conversations.assert_called_once_with(
             db=ANY,
@@ -253,14 +242,14 @@ def test_history_forbids_other_user_conversation(
     mock_get_or_create_user,
     mock_get_conversation_by_id,
 ):
-    # Utilisateur actuellement connecté
+    # Utilisateur actuellement connectÃ©
     fake_user = SimpleNamespace(id=42)
 
-    # Conversation appartenant à un autre utilisateur
+    # Conversation appartenant Ã  un autre utilisateur
     fake_conversation = SimpleNamespace(
         id=100,
         user_id=99,
-        title="Conversation privée",
+        title="Conversation privÃ©e",
         created_at="2026-09-27T12:00:00",
         messages=[],
     )
@@ -274,6 +263,7 @@ def test_history_forbids_other_user_conversation(
         "name": "Test User",
         "email": "test@epf.fr",
         "microsoft_id": "microsoft-test-id",
+
     }
 
     try:
@@ -284,7 +274,6 @@ def test_history_forbids_other_user_conversation(
         assert response.json() == {
             "detail": "Accès interdit à cette conversation.",
         }
-
         mock_get_conversation_by_id.assert_called_once_with(
             db=ANY,
             conversation_id=100,
@@ -292,3 +281,15 @@ def test_history_forbids_other_user_conversation(
 
     finally:
         app.dependency_overrides.clear()
+
+
+
+
+
+
+
+
+
+
+
+

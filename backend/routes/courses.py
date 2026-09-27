@@ -1,18 +1,15 @@
 """
-Route GET /courses
+Routes GET /courses et GET /courses/download
 
-Retourne la liste des cours disponibles dans Azure Blob Storage
-pour alimenter les sélecteurs du frontend EPFind.
-
-NOTE (ajout Aya - Personne 3) : le champ "modules" a été ajouté en plus
-de "courses" (qui reste inchangé, pour ne rien casser côté Diarra/main)
-afin d'alimenter le sélecteur Module -> Cours du Chat et de la Révision.
-A valider avec Yousra, responsable officielle de ce fichier.
+Retourne la liste des cours disponibles dans Azure Blob Storage,
+regroupés par module, et permet de télécharger le PDF d'un cours
+pour que l'étudiant puisse voir la page exacte citée en source.
 """
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 
-from storage.blob_service import list_courses
+from storage.blob_service import list_courses, download_course
 
 
 router = APIRouter()
@@ -56,4 +53,46 @@ def get_courses():
         raise HTTPException(
             status_code=500,
             detail=f"Erreur pendant la récupération des cours : {str(error)}",
+        )
+
+
+@router.get("/courses/download")
+def download_course_pdf(course: str, module: str | None = None):
+    """
+    Télécharge le PDF d'un cours (utilisé par les sources cliquables du Chat,
+    pour permettre à l'étudiant d'ouvrir le vrai document).
+    """
+    try:
+        course_documents = list_courses()
+
+        match = next(
+            (
+                doc for doc in course_documents
+                if doc.get("course") == course
+                and (module is None or doc.get("module") == module)
+            ),
+            None,
+        )
+
+        if not match:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Document introuvable pour le cours '{course}'.",
+            )
+
+        local_path = download_course(match["blob_name"])
+
+        return FileResponse(
+            local_path,
+            media_type="application/pdf",
+            filename=match.get("document", "cours.pdf"),
+            content_disposition_type="inline",  # affiche le PDF dans l'onglet, ne le télécharge pas
+        )
+
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur pendant le téléchargement du document : {str(error)}",
         )

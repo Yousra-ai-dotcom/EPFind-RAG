@@ -10,6 +10,23 @@ import SourceCard from "./SourceCard";
 import FeedbackButtons from "./FeedbackButtons";
 import { Source, synthesizeSpeech } from "@/lib/api";
 
+/**
+ * Détection très simple de la langue d'un texte (français vs anglais),
+ * pour choisir la bonne voix côté Azure Text-to-Speech. Pas parfait,
+ * mais suffisant pour distinguer une réponse en français d'une réponse
+ * en anglais.
+ */
+function detectLanguage(text: string): "fr-FR" | "en-US" {
+  const frenchHints = /[éèêàùçôâ]| le | la | les | un | une | est | pour | avec | dans | qui | que /i;
+  const englishHints = / the | is | are | this | that | with | for | you | your | what | how /i;
+
+  const padded = ` ${text.toLowerCase()} `;
+  const frenchScore = (padded.match(frenchHints) || []).length;
+  const englishScore = (padded.match(englishHints) || []).length;
+
+  return englishScore > frenchScore ? "en-US" : "fr-FR";
+}
+
 export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -25,47 +42,19 @@ type Props = {
 
 export default function Chat({ messages, onFeedback, onRegenerate }: Props) {
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
   async function handleListen(index: number, text: string) {
-    if (currentAudio && playingIndex === index) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-      setCurrentAudio(null);
-      setPlayingIndex(null);
-      return;
-    }
-
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-    }
-
     setPlayingIndex(index);
-
     try {
-      const audioBlob = await synthesizeSpeech(text);
+      const language = detectLanguage(text);
+      const audioBlob = await synthesizeSpeech(text, language);
       const url = URL.createObjectURL(audioBlob);
       const audio = new Audio(url);
-
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        setCurrentAudio(null);
-        setPlayingIndex(null);
-      };
-
-      audio.onerror = () => {
-        URL.revokeObjectURL(url);
-        setCurrentAudio(null);
-        setPlayingIndex(null);
-      };
-
-      setCurrentAudio(audio);
+      audio.onended = () => setPlayingIndex(null);
       await audio.play();
     } catch {
-      setCurrentAudio(null);
-      setPlayingIndex(null);
       alert("Impossible de lire la réponse à voix haute.");
+      setPlayingIndex(null);
     }
   }
 
@@ -102,10 +91,11 @@ export default function Chat({ messages, onFeedback, onRegenerate }: Props) {
               <div className="mt-2 flex items-center gap-3">
                 <button
                   onClick={() => handleListen(index, message.content)}
+                  disabled={playingIndex === index}
                   className="text-xs text-epf-gray hover:text-epf-pink"
-                  title={playingIndex === index ? "Arrêter la lecture" : "Écouter la réponse"}
+                  title="Écouter la réponse"
                 >
-                  {playingIndex === index ? "⏹️ Arrêter" : "🔊 Écouter"}
+                  {playingIndex === index ? "🔊 Lecture..." : "🔊 Écouter"}
                 </button>
 
                 {onFeedback && onRegenerate && (
