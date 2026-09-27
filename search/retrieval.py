@@ -66,6 +66,65 @@ def course_is_indexed(
 
     return next(iter(results), None) is not None
 
+def delete_indexed_course(
+    module: str,
+    course: str,
+) -> int:
+    """
+    Delete all chunks belonging to a course from Azure AI Search.
+
+    Returns the number of chunks deleted.
+    """
+
+    if not module or not module.strip():
+        raise ValueError("Le module ne peut pas être vide.")
+
+    if not course or not course.strip():
+        raise ValueError("Le cours ne peut pas être vide.")
+
+    safe_module = module.strip().replace("'", "''")
+    safe_course = course.strip().replace("'", "''")
+
+    filter_expression = (
+        f"module eq '{safe_module}' "
+        f"and course eq '{safe_course}'"
+    )
+
+    client = get_search_client()
+
+    results = client.search(
+        search_text="*",
+        filter=filter_expression,
+        select=["id"],
+    )
+
+    documents = [
+        {"id": result["id"]}
+        for result in results
+        if result.get("id")
+    ]
+
+    if not documents:
+        return 0
+
+    delete_results = client.delete_documents(
+        documents=documents
+    )
+
+    failed = [
+        result
+        for result in delete_results
+        if not result.succeeded
+    ]
+
+    if failed:
+        raise RuntimeError(
+            f"{len(failed)} chunk(s) n'ont pas pu être supprimés "
+            "d'Azure AI Search."
+        )
+
+    return len(documents)
+
 def retrieve(
     question: str,
     top_k: int = 5,

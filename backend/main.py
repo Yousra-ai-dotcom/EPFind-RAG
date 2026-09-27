@@ -15,6 +15,7 @@ from backend.routes import (
     ask,
     auth,
     courses,
+    documents,
     feedback,
     history,
     quiz,
@@ -53,6 +54,7 @@ app.include_router(history.router)
 app.include_router(quiz.router)
 app.include_router(revision.router)
 app.include_router(speech.router)
+app.include_router(documents.router)
 
 
 @app.get("/")
