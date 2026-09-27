@@ -12,3 +12,5 @@ azure-search-documents
 av
 
 PyMuPDF
+gunicorn
+openai
