@@ -8,30 +8,21 @@ l'identité de l'utilisateur connecté.
 import os
 
 from dotenv import load_dotenv
-from fastapi import Header
+from fastapi import Header, HTTPException
 from jose import JWTError, jwt
 import requests
 
-from fastapi import HTTPException
 
 load_dotenv()
 
 ENTRA_TENANT_ID = os.getenv("ENTRA_TENANT_ID")
 ENTRA_CLIENT_ID = os.getenv("ENTRA_CLIENT_ID")
 
-if not ENTRA_TENANT_ID or not ENTRA_CLIENT_ID:
-    raise RuntimeError(
-        "ENTRA_TENANT_ID et ENTRA_CLIENT_ID doivent être définis."
-    )
+
 
 MICROSOFT_LOGIN = "https://" + "login.microsoftonline.com"
 
-ISSUER = f"{MICROSOFT_LOGIN}/{ENTRA_TENANT_ID}/v2.0"
 
-JWKS_URL = (
-    f"{MICROSOFT_LOGIN}/{ENTRA_TENANT_ID}/"
-    "discovery/v2.0/keys"
-)
 
 
 def verify_token(token: str) -> dict:
@@ -47,10 +38,22 @@ def verify_token(token: str) -> dict:
 
     Retourne l'identité de l'utilisateur.
     """
+    if not ENTRA_TENANT_ID:
+        raise ValueError("ENTRA_TENANT_ID est manquant.")
+
+    if not ENTRA_CLIENT_ID:
+        raise ValueError("ENTRA_CLIENT_ID est manquant.")
+
+    issuer = f"{MICROSOFT_LOGIN}/{ENTRA_TENANT_ID}/v2.0"
+
+    jwks_url = (
+        f"{MICROSOFT_LOGIN}/{ENTRA_TENANT_ID}/"
+        "discovery/v2.0/keys"
+    )
 
     try:
         # Récupération des clés publiques Microsoft
-        jwks = requests.get(JWKS_URL, timeout=5)
+        jwks = requests.get(jwks_url, timeout=5)
         jwks.raise_for_status()
         keys = jwks.json()
 
@@ -72,7 +75,7 @@ def verify_token(token: str) -> dict:
             rsa_key,
             algorithms=["RS256"],
             audience=ENTRA_CLIENT_ID,
-            issuer=ISSUER,
+            issuer=issuer,
         )
 
         # Vérification du scope
