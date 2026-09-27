@@ -186,11 +186,36 @@ def delete_course(blob_name: str) -> bool:
     """
     Delete a course PDF from Azure Blob Storage.
     """
-    raise NotImplementedError
+
+    if not blob_name or not blob_name.strip():
+        raise ValueError("Le nom du blob ne peut pas être vide.")
+
+    container = _get_container_client()
+
+    blob_client = container.get_blob_client(
+        blob_name.strip()
+    )
+
+    if not blob_client.exists():
+        return False
+
+    blob_client.delete_blob()
+
+    return True
 
 
 def course_exists(blob_name: str) -> bool:
     """
     Check whether a document already exists in Azure Blob Storage.
     """
-    raise NotImplementedError
+
+    if not blob_name or not blob_name.strip():
+        raise ValueError("Le nom du blob ne peut pas être vide.")
+
+    container = _get_container_client()
+
+    blob_client = container.get_blob_client(
+        blob_name.strip()
+    )
+
+    return blob_client.exists()
